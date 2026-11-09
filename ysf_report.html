@@ -1,0 +1,754 @@
+<title>YSF 2026 Report Generator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root {
+  --bg:#f7f6f3; --surface:#fff; --surface2:#f0efe9; --border:#e3e1db;
+  --fg:#1a1917; --fg2:#6b6762; --fg3:#9d9994;
+  --accent:#1d4ed8; --accent-soft:#dbeafe; --accent-fg:#1e40af;
+  --green:#15803d; --green-bg:#dcfce7; --green-border:#86efac;
+  --red:#b91c1c; --red-bg:#fee2e2;
+  --amber:#92400e; --amber-bg:#fef3c7;
+  --q1c:#0f766e; --q1b:#ccfbf1;
+  --q2c:#1d4ed8; --q2b:#dbeafe;
+  --q3c:#7c3aed; --q3b:#ede9fe;
+  --q4c:#b45309; --q4b:#fef3c7;
+  --ni:#64748b; --nib:#f1f5f9;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111110;--surface:#1c1b19;--surface2:#252420;--border:#2e2d2a;
+  --fg:#f0ede8;--fg2:#888480;--fg3:#55524e;
+  --accent:#60a5fa;--accent-soft:#1e3a5f;--accent-fg:#93c5fd;
+  --green:#4ade80;--green-bg:#052e16;--green-border:#166534;
+  --red:#f87171;--red-bg:#450a0a;
+  --amber:#fbbf24;--amber-bg:#451a03;
+  --q1c:#2dd4bf;--q1b:#042f2e;--q2c:#60a5fa;--q2b:#1e3a5f;
+  --q3c:#c084fc;--q3b:#3b1f6e;--q4c:#fb923c;--q4b:#431407;
+  --ni:#94a3b8;--nib:#1e293b;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#111110;--surface:#1c1b19;--surface2:#252420;--border:#2e2d2a;
+  --fg:#f0ede8;--fg2:#888480;--fg3:#55524e;
+  --accent:#60a5fa;--accent-soft:#1e3a5f;--accent-fg:#93c5fd;
+  --green:#4ade80;--green-bg:#052e16;--green-border:#166534;
+  --red:#f87171;--red-bg:#450a0a;
+  --amber:#fbbf24;--amber-bg:#451a03;
+  --q1c:#2dd4bf;--q1b:#042f2e;--q2c:#60a5fa;--q2b:#1e3a5f;
+  --q3c:#c084fc;--q3b:#3b1f6e;--q4c:#fb923c;--q4b:#431407;
+  --ni:#94a3b8;--nib:#1e293b;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;
+  padding-left:max(0px,env(safe-area-inset-left,0px));
+  padding-right:max(0px,env(safe-area-inset-right,0px));
+}
+
+/* Layout */
+.app{display:grid;grid-template-columns:320px 1fr;min-height:100vh;}
+@media(max-width:800px){.app{grid-template-columns:1fr;}}
+
+/* Sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);
+  padding:20px;overflow-y:auto;position:sticky;top:0;max-height:100vh;}
+.sidebar-title{font-size:1rem;font-weight:700;margin-bottom:4px;}
+.sidebar-sub{font-size:.78rem;color:var(--fg2);margin-bottom:16px;}
+
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:.78rem;font-weight:600;color:var(--fg2);margin-bottom:4px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;
+  background:var(--surface2);color:var(--fg);font-family:inherit;font-size:.85rem;outline:none;
+  transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{resize:vertical;min-height:60px;}
+
+.btn{width:100%;padding:10px;border:none;border-radius:8px;font-size:.88rem;
+  font-weight:600;cursor:pointer;transition:opacity .15s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{opacity:.88;}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.btn-secondary{background:var(--surface2);color:var(--fg);border:1px solid var(--border);margin-top:8px;}
+.btn-secondary:hover{background:var(--border);}
+
+.load-msg{font-size:.78rem;color:var(--fg2);margin-top:8px;line-height:1.5;}
+.load-msg.err{color:var(--red);}
+
+.sec-divider{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--fg3);margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--border);}
+
+/* Manual items */
+.item-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+.item-row{display:flex;gap:6px;align-items:center;}
+.item-row input{flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);color:var(--fg);font-size:.8rem;outline:none;}
+.item-row input:focus{border-color:var(--accent);}
+.pts-input{width:60px!important;flex:none!important;text-align:center;}
+.del-btn{background:none;border:none;color:var(--fg3);cursor:pointer;font-size:1rem;padding:0 4px;}
+.del-btn:hover{color:var(--red);}
+.add-btn{font-size:.78rem;color:var(--accent);background:none;border:none;cursor:pointer;padding:2px 0;}
+.add-btn:hover{text-decoration:underline;}
+
+/* Score panel */
+.score-panel{background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:14px;margin-top:16px;}
+.score-row{display:flex;justify-content:space-between;align-items:center;
+  font-size:.82rem;padding:3px 0;}
+.score-row span:last-child{font-weight:700;font-variant-numeric:tabular-nums;}
+.score-total{font-size:1.1rem;font-weight:700;padding-top:6px;margin-top:6px;
+  border-top:2px solid var(--border);}
+.elig-badge{display:block;text-align:center;padding:6px;border-radius:7px;
+  font-weight:700;font-size:.82rem;margin-top:8px;}
+.elig-ok{background:var(--green-bg);color:var(--green);}
+.elig-no{background:var(--red-bg);color:var(--red);}
+.elig-warn{background:var(--amber-bg);color:var(--amber);}
+
+/* Main */
+.main{padding:24px;overflow-x:hidden;}
+.main-title{font-size:1.1rem;font-weight:700;margin-bottom:4px;}
+.main-sub{font-size:.82rem;color:var(--fg2);margin-bottom:20px;}
+
+/* Profile card */
+.profile-card{background:var(--accent-soft);border:1px solid var(--accent);
+  border-radius:10px;padding:14px;margin-bottom:16px;display:none;}
+.profile-name{font-weight:700;font-size:.95rem;}
+.profile-stats{display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;}
+.pstat{font-size:.8rem;color:var(--fg2);}
+.pstat strong{color:var(--fg);}
+
+/* Summary tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:20px;}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:12px;text-align:center;}
+.tile-val{font-size:1.5rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+.tile-lbl{font-size:.68rem;color:var(--fg2);margin-top:3px;}
+.tile-min{font-size:.62rem;color:var(--fg3);}
+.tile.accent{border-color:var(--accent);background:var(--accent-soft);}
+.tile.accent .tile-val{color:var(--accent);}
+.tile.ok .tile-val{color:var(--green);}
+.tile.warn .tile-val{color:var(--amber);}
+
+/* Section blocks */
+.pub-section{margin-bottom:20px;}
+.psec-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px 8px 0 0;cursor:pointer;gap:10px;}
+.psec-hdr:hover{background:var(--surface2);}
+.psec-left{display:flex;align-items:center;gap:8px;}
+.psec-title{font-weight:600;font-size:.88rem;}
+.psec-sub{font-size:.75rem;color:var(--fg2);}
+.pts-chip{background:var(--accent-soft);color:var(--accent);border-radius:20px;
+  padding:2px 10px;font-size:.75rem;font-weight:700;white-space:nowrap;}
+.chev{font-size:.7rem;color:var(--fg3);transition:transform .2s;}
+
+.pub-table-wrap{border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;
+  overflow-x:auto;display:none;}
+.pub-table-wrap.open{display:block;}
+table{width:100%;border-collapse:collapse;min-width:580px;}
+th{font-size:.7rem;font-weight:600;color:var(--fg2);padding:7px 10px;
+  border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;
+  background:var(--surface2);}
+td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:.8rem;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+.td-pts{font-weight:700;color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.td-title{max-width:280px;}
+.td-doi{color:var(--accent);font-size:.72rem;text-decoration:none;}
+.td-doi:hover{text-decoration:underline;}
+.td-auth{color:var(--fg2);font-size:.75rem;max-width:180px;}
+.badge{display:inline-block;border-radius:4px;padding:1px 6px;
+  font-size:.7rem;font-weight:600;white-space:nowrap;}
+.bq1{background:var(--q1b);color:var(--q1c);}
+.bq2{background:var(--q2b);color:var(--q2c);}
+.bq3{background:var(--q3b);color:var(--q3c);}
+.bq4{background:var(--q4b);color:var(--q4c);}
+.bni{background:var(--nib);color:var(--ni);}
+.byes{background:var(--green-bg);color:var(--green);}
+.bno{background:var(--surface2);color:var(--fg3);}
+.psec-foot{padding:8px 14px;font-size:.75rem;color:var(--fg2);
+  border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;
+  background:var(--surface);}
+
+/* Manual items table */
+.manual-table{width:100%;border-collapse:collapse;min-width:400px;}
+.manual-table th{font-size:.7rem;font-weight:600;color:var(--fg2);padding:7px 10px;
+  border-bottom:1px solid var(--border);background:var(--surface2);}
+.manual-table td{padding:7px 10px;border-bottom:1px solid var(--border);font-size:.8rem;}
+.manual-table tr:last-child td{border-bottom:none;}
+
+/* Empty */
+.empty{text-align:center;padding:32px;color:var(--fg3);font-size:.85rem;}
+</style>
+
+<div class="app">
+
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar">
+  <div class="sidebar-title">YSF 2026 Report Generator</div>
+  <div class="sidebar-sub">Young Scientist Award for Research</div>
+
+  <div class="field">
+    <label>Full Name</label>
+    <input type="text" id="f_name" placeholder="Dr. J.A.B. Alawatugoda">
+  </div>
+  <div class="field">
+    <label>Institution</label>
+    <input type="text" id="f_inst" placeholder="SLIIT KandyUni">
+  </div>
+  <div class="field">
+    <label>OpenAlex Author ID</label>
+    <input type="text" id="f_oaid" placeholder="A5056029451">
+  </div>
+  <button class="btn btn-primary" id="fetchBtn" onclick="fetchAll()">🔍 Fetch Publications</button>
+  <div class="load-msg" id="loadMsg"></div>
+
+  <!-- Score panel -->
+  <div class="score-panel" id="scorePanel">
+    <div class="score-row"><span>§1 Q1/Q2 journals</span><span id="sp_q12">0</span></div>
+    <div class="score-row"><span>§1 Q3/Q4 journals</span><span id="sp_q34">0</span></div>
+    <div class="score-row"><span>§1 Other indexed</span><span id="sp_oi">0</span></div>
+    <div class="score-row"><span>§1 Non-indexed</span><span id="sp_ni">0</span></div>
+    <div class="score-row"><span>§1 Conference</span><span id="sp_cf">0</span></div>
+    <div class="score-row"><span>§1 Other items</span><span id="sp_o1">0</span></div>
+    <div class="score-row score-total"><span>Section 1</span><span id="sp_s1">0</span></div>
+    <div class="score-row"><span>Section 2 (outreach)</span><span id="sp_s2">0</span></div>
+    <div class="score-row"><span>Section 3 (national)</span><span id="sp_s3">0</span></div>
+    <div class="score-row"><span>Section 4 (intl)</span><span id="sp_s4">0</span></div>
+    <div class="score-row score-total" style="font-size:1.1rem"><span>TOTAL</span><span id="sp_tot">0</span></div>
+    <span class="elig-badge elig-warn" id="eligBadge">Enter data to check</span>
+  </div>
+
+  <!-- Section 1 manual items -->
+  <div class="sec-divider">Section 1 — Other items</div>
+
+  <div class="field">
+    <label>Editorial board (indexed, 4 pts each)</label>
+    <div class="item-list" id="list_edit_idx"></div>
+    <button class="add-btn" onclick="addItem('list_edit_idx',4)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>Editorial board (non-indexed, 2 pts each)</label>
+    <div class="item-list" id="list_edit_ni"></div>
+    <button class="add-btn" onclick="addItem('list_edit_ni',2)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>Reviewer — indexed journal (1 pt, max 4)</label>
+    <div class="item-list" id="list_rev_idx"></div>
+    <button class="add-btn" onclick="addItem('list_rev_idx',1)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>International award (6 pts each)</label>
+    <div class="item-list" id="list_int_aw"></div>
+    <button class="add-btn" onclick="addItem('list_int_aw',6)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>National award (4 pts each)</label>
+    <div class="item-list" id="list_nat_aw"></div>
+    <button class="add-btn" onclick="addItem('list_nat_aw',4)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>Uni/institutional award (2 pts, max 6)</label>
+    <div class="item-list" id="list_uni_aw"></div>
+    <button class="add-btn" onclick="addItem('list_uni_aw',2)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>International research grant (4 pts each)</label>
+    <div class="item-list" id="list_int_gr"></div>
+    <button class="add-btn" onclick="addItem('list_int_gr',4)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>National research grant (3 pts each)</label>
+    <div class="item-list" id="list_nat_gr"></div>
+    <button class="add-btn" onclick="addItem('list_nat_gr',3)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>PhD supervision (4 pts each)</label>
+    <div class="item-list" id="list_phd"></div>
+    <button class="add-btn" onclick="addItem('list_phd',4)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>Patent awarded (5 pts, max 10)</label>
+    <div class="item-list" id="list_patent"></div>
+    <button class="add-btn" onclick="addItem('list_patent',5)">+ Add</button>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="sec-divider">Section 2 — Outreach (min 20, max 45)</div>
+  <div class="field">
+    <label>Conference organizing role (2–3 pts each)</label>
+    <div class="item-list" id="list_org"></div>
+    <button class="add-btn" onclick="addItem('list_org',2)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>Session chair (0.5 pts each)</label>
+    <div class="item-list" id="list_chair"></div>
+    <button class="add-btn" onclick="addItem('list_chair',0.5)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>Resource person (1 pt each)</label>
+    <div class="item-list" id="list_res"></div>
+    <button class="add-btn" onclick="addItem('list_res',1)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>Community/science popularization (1 pt each)</label>
+    <div class="item-list" id="list_comm"></div>
+    <button class="add-btn" onclick="addItem('list_comm',1)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>Professional body membership (1 pt each)</label>
+    <div class="item-list" id="list_memb"></div>
+    <button class="add-btn" onclick="addItem('list_memb',1)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>UGC Research Performance Tier (h-index)</label>
+    <select id="ugc_tier" onchange="recalc()">
+      <option value="0">Tier 1 (0 pts)</option>
+      <option value="4">Tier 2 — 4 pts</option>
+      <option value="6">Tier 3 — 6 pts</option>
+      <option value="8">Tier 4 — 8 pts</option>
+      <option value="10">Tier 4* — 10 pts</option>
+    </select>
+  </div>
+
+  <!-- Section 3 & 4 -->
+  <div class="sec-divider">Section 3 — National (max 10)</div>
+  <div class="field">
+    <label>National policy development (3 pts each)</label>
+    <div class="item-list" id="list_nat_pol"></div>
+    <button class="add-btn" onclick="addItem('list_nat_pol',3)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>National committee member (2 pts each)</label>
+    <div class="item-list" id="list_nat_com"></div>
+    <button class="add-btn" onclick="addItem('list_nat_com',2)">+ Add</button>
+  </div>
+  <div class="sec-divider">Section 4 — International (max 10)</div>
+  <div class="field">
+    <label>International policy development (4 pts each)</label>
+    <div class="item-list" id="list_int_pol"></div>
+    <button class="add-btn" onclick="addItem('list_int_pol',4)">+ Add</button>
+  </div>
+  <div class="field">
+    <label>International committee member (3 pts each)</label>
+    <div class="item-list" id="list_int_com"></div>
+    <button class="add-btn" onclick="addItem('list_int_com',3)">+ Add</button>
+  </div>
+
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="main-title" id="mainTitle">YSF 2026 — Score Report</div>
+  <div class="main-sub" id="mainSub">OpenAlex ID enter කරලා publications fetch කරන්න</div>
+
+  <div class="profile-card" id="profileCard">
+    <div class="profile-name" id="profileName"></div>
+    <div class="profile-stats" id="profileStats"></div>
+  </div>
+
+  <div class="tiles" id="tiles" style="display:none">
+    <div class="tile" id="t_s1"><div class="tile-val" id="tv_s1">0</div><div class="tile-lbl">Section 1</div><div class="tile-min">min 50</div></div>
+    <div class="tile" id="t_s2"><div class="tile-val" id="tv_s2">0</div><div class="tile-lbl">Section 2</div><div class="tile-min">min 20 · max 45</div></div>
+    <div class="tile" id="t_s3"><div class="tile-val" id="tv_s3">0</div><div class="tile-lbl">Section 3</div><div class="tile-min">max 10</div></div>
+    <div class="tile" id="t_s4"><div class="tile-val" id="tv_s4">0</div><div class="tile-lbl">Section 4</div><div class="tile-min">max 10</div></div>
+    <div class="tile accent" id="t_tot"><div class="tile-val" id="tv_tot">0</div><div class="tile-lbl"><strong>Total</strong></div><div class="tile-min">min 70</div></div>
+  </div>
+
+  <div id="pubSections"></div>
+  <div id="manualSections"></div>
+</div>
+</div>
+
+<script>
+const YEAR_FROM = 2021, YEAR_TO = 2026;
+let scimagoData = null;
+let allWorks = [], authorId = '';
+
+// ── Scimago ──────────────────────────────────────────
+async function loadScimago() {
+  if (scimagoData) return scimagoData;
+  try {
+    const r = await fetch('scimago_issn.json');
+    scimagoData = await r.json();
+  } catch { scimagoData = {}; }
+  return scimagoData;
+}
+
+function getQ(work) {
+  const issns = work.primary_location?.source?.issn || [];
+  for (const issn of issns) {
+    const q = scimagoData?.[issn.replace('-','')];
+    if (q) return q;
+  }
+  return null;
+}
+
+// ── Fetch ─────────────────────────────────────────────
+async function fetchAll() {
+  const id = document.getElementById('f_oaid').value.trim();
+  if (!id) return alert('OpenAlex ID ලෙස enter කරන්න');
+  authorId = id;
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  setMsg('Author profile loading…');
+
+  try {
+    const ar = await fetch(`https://api.openalex.org/authors/${id}?mailto=research@sliit.lk`);
+    const a = await ar.json();
+    if (!a.id) throw new Error('Author not found');
+
+    document.getElementById('profileName').textContent = a.display_name;
+    document.getElementById('profileStats').innerHTML = `
+      <span class="pstat"><strong>${a.works_count||0}</strong> total works</span>
+      <span class="pstat"><strong>${a.cited_by_count||0}</strong> citations</span>
+      <span class="pstat"><strong>${a.summary_stats?.h_index||0}</strong> h-index</span>
+      <span class="pstat"><strong>${a.summary_stats?.i10_index||0}</strong> i10-index</span>`;
+    document.getElementById('profileCard').style.display = 'block';
+    document.getElementById('mainTitle').textContent = a.display_name + ' — YSF 2026';
+    document.getElementById('mainSub').textContent = document.getElementById('f_inst').value || a.last_known_institutions?.[0]?.display_name || '';
+    document.getElementById('tiles').style.display = 'grid';
+
+    // Set UGC tier
+    const h = a.summary_stats?.h_index || 0;
+    const sel = document.getElementById('ugc_tier');
+    if (h >= 10) sel.value = '10';
+    else if (h >= 7) sel.value = '8';
+    else if (h >= 4) sel.value = '6';
+    else if (h >= 2) sel.value = '4';
+    else sel.value = '0';
+
+    // Fetch works
+    setMsg('Loading Scimago quartile data…');
+    await loadScimago();
+    setMsg('Fetching publications (2021–2026)…');
+    allWorks = [];
+    let page = 1;
+    while (true) {
+      const wr = await fetch(`https://api.openalex.org/works?filter=author.id:${id},publication_year:${YEAR_FROM}-${YEAR_TO}&per-page=50&page=${page}&mailto=research@sliit.lk`);
+      const wd = await wr.json();
+      const res = wd.results || [];
+      allWorks = allWorks.concat(res);
+      if (res.length < 50) break;
+      page++;
+    }
+
+    setMsg(`✅ ${allWorks.length} publications fetched`, false);
+    renderAll();
+
+  } catch(e) {
+    setMsg('❌ Error: ' + e.message, true);
+  }
+  btn.disabled = false;
+}
+
+function setMsg(t, err=false) {
+  const el = document.getElementById('loadMsg');
+  el.textContent = t;
+  el.className = 'load-msg' + (err ? ' err' : '');
+}
+
+// ── Classify ──────────────────────────────────────────
+function classify(w) {
+  const t = (w.type||'').toLowerCase();
+  if (t==='journal-article'||t==='article') return 'journal';
+  if (t==='proceedings-article'||t==='conference-paper') return 'conference';
+  return 'other';
+}
+
+function isFirst(w) {
+  const auth = (w.authorships||[]).find(a => {
+    const aid = (a.author?.id||'');
+    return aid.includes(authorId.replace(/^A/i,''));
+  });
+  return auth?.author_position==='first' || auth?.is_corresponding===true;
+}
+
+function fmt(authors) {
+  const list = (authors||[]).slice(0,4).map(a=>a.author?.display_name||'').filter(Boolean);
+  return list.join(', ') + (authors.length>4?' et al.':'');
+}
+
+// ── Render ────────────────────────────────────────────
+function renderAll() {
+  const journals = allWorks.filter(w => classify(w)==='journal');
+  const conferences = allWorks.filter(w => classify(w)==='conference');
+
+  const q1q2 = [], q3q4 = [], other_idx = [], non_idx = [];
+  journals.forEach(w => {
+    const q = getQ(w);
+    if (q==='Q1'||q==='Q2') q1q2.push(w);
+    else if (q==='Q3'||q==='Q4') q3q4.push(w);
+    else other_idx.push(w); // assume indexed if on OpenAlex
+  });
+
+  const sections = [
+    { id:'sec_q12', title:'§1.1 · Q1/Q2 Journal Publications', base:6, mult:2,
+      sub:'6 pts · 1st/Corresponding author ×2 = 12 pts each', works:q1q2 },
+    { id:'sec_q34', title:'§1.2 · Q3/Q4 Journal Publications', base:4, mult:2,
+      sub:'4 pts · 1st/Corresponding author ×2 = 8 pts each', works:q3q4 },
+    { id:'sec_oi', title:'§1.3 · Other Indexed Journals', base:2, mult:2,
+      sub:'2 pts · 1st/Corresponding author ×2 = 4 pts each', works:other_idx },
+    { id:'sec_cf', title:'§1.5 · Conference Papers', base:1, mult:2,
+      sub:'1 pt · 1st/Corresponding author ×2 = 2 pts each · Max 10 pts', works:conferences },
+  ];
+
+  let pubHtml = '';
+  sections.forEach(s => {
+    if (!s.works.length) return;
+    let first_pts=0, other_pts=0;
+    const rows = s.works.map((w,i) => {
+      const q = getQ(w); const fi = isFirst(w);
+      const pts = fi ? s.base*s.mult : s.base;
+      if (fi) first_pts+=pts; else other_pts+=pts;
+      const qBadge = q ? `<span class="badge b${q.toLowerCase()}">${q}</span>` : `<span class="badge bni">—</span>`;
+      const doi = (w.doi||'').replace('https://doi.org/','');
+      const venue = w.primary_location?.source?.display_name || '—';
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${venue}<br><small style="color:var(--fg2)">${w.publication_year||''}</small></td>
+        <td class="td-title">${esc(w.display_name||'')}${doi?`<br><a class="td-doi" href="https://doi.org/${doi}" target="_blank">↗ ${doi}</a>`:''}
+        </td>
+        <td class="td-auth">${esc(fmt(w.authorships))}</td>
+        <td>${qBadge}</td>
+        <td><span class="badge ${fi?'byes':'bno'}">${fi?'✓ Yes':'No'}</span></td>
+        <td class="td-pts">${pts}</td>
+      </tr>`;
+    }).join('');
+
+    const total = first_pts + other_pts;
+    const foot = `${s.works.length} papers · 1st/corr: ${first_pts} pts · co-author: ${other_pts} pts · <strong>Total: ${total} pts</strong>`;
+    pubHtml += `
+      <div class="pub-section">
+        <div class="psec-hdr" onclick="toggleSec(this)">
+          <div class="psec-left">
+            <span class="pts-chip">${total} pts</span>
+            <div><div class="psec-title">${s.title}</div><div class="psec-sub">${s.sub}</div></div>
+          </div>
+          <span class="chev">▼</span>
+        </div>
+        <div class="pub-table-wrap open">
+          <table><tr><th>#</th><th>Journal / Conference</th><th>Title &amp; DOI</th><th>Authors</th><th>Quartile</th><th>1st/Corr?</th><th>Pts</th></tr>
+          ${rows}</table>
+        </div>
+        <div class="psec-foot">${foot}</div>
+      </div>`;
+  });
+
+  document.getElementById('pubSections').innerHTML = pubHtml || '<div class="empty">No publications found in 2021–2026</div>';
+  recalc();
+}
+
+function toggleSec(hdr) {
+  const wrap = hdr.nextElementSibling;
+  const chev = hdr.querySelector('.chev');
+  const open = wrap.classList.toggle('open');
+  chev.textContent = open ? '▼' : '▶';
+}
+
+// ── Manual items ─────────────────────────────────────
+function addItem(listId, defaultPts) {
+  const list = document.getElementById(listId);
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `<input type="text" placeholder="Description" oninput="recalc()">
+    <input type="number" class="pts-input" value="${defaultPts}" min="0" step="0.5" oninput="recalc()">
+    <button class="del-btn" onclick="this.parentElement.remove();recalc()">✕</button>`;
+  list.appendChild(row);
+}
+
+function getListTotal(listId) {
+  const rows = document.querySelectorAll(`#${listId} .item-row`);
+  let t = 0;
+  rows.forEach(r => { t += parseFloat(r.querySelectorAll('input')[1]?.value||0); });
+  return t;
+}
+
+function getListItems(listId) {
+  const rows = document.querySelectorAll(`#${listId} .item-row`);
+  const items = [];
+  rows.forEach(r => {
+    const inputs = r.querySelectorAll('input');
+    const desc = inputs[0]?.value?.trim();
+    const pts = parseFloat(inputs[1]?.value||0);
+    if (desc) items.push({desc, pts});
+  });
+  return items;
+}
+
+// ── Calc ──────────────────────────────────────────────
+function cap(v,mx) { return Math.min(v,mx); }
+
+function recalc() {
+  if (!allWorks.length) { renderManual(); return; }
+
+  const journals = allWorks.filter(w => classify(w)==='journal');
+  const conferences = allWorks.filter(w => classify(w)==='conference');
+
+  let q12f=0,q12o=0,q34f=0,q34o=0,oif=0,oio=0;
+  journals.forEach(w => {
+    const q=getQ(w); const fi=isFirst(w);
+    if (q==='Q1'||q==='Q2') fi?q12f+=12:q12o+=6;
+    else if (q==='Q3'||q==='Q4') fi?q34f+=8:q34o+=4;
+    else fi?oif+=4:oio+=2;
+  });
+
+  let cff=0,cfo=0, cc=0;
+  conferences.forEach(w => {
+    const fi=isFirst(w);
+    if (cc < 10) { fi?cff+=2:cfo+=1; cc++; }
+  });
+
+  const s1_pub = q12f+q12o+q34f+q34o+oif+oio+cff+cfo;
+
+  // Other §1
+  const edit_idx  = cap(getListTotal('list_edit_idx'), 999);
+  const edit_ni   = cap(getListTotal('list_edit_ni'), 999);
+  const rev_idx   = cap(getListTotal('list_rev_idx'), 4);
+  const int_aw    = getListTotal('list_int_aw');
+  const nat_aw    = getListTotal('list_nat_aw');
+  const uni_aw    = cap(getListTotal('list_uni_aw'), 6);
+  const int_gr    = getListTotal('list_int_gr');
+  const nat_gr    = getListTotal('list_nat_gr');
+  const phd       = getListTotal('list_phd');
+  const patent    = cap(getListTotal('list_patent'), 10);
+  const s1_other  = edit_idx+edit_ni+rev_idx+int_aw+nat_aw+uni_aw+int_gr+nat_gr+phd+patent;
+  const sec1      = s1_pub + s1_other;
+
+  // §2
+  const org   = cap(getListTotal('list_org'), 9);
+  const chair = cap(getListTotal('list_chair'), 5);
+  const res   = cap(getListTotal('list_res'), 5);
+  const comm  = cap(getListTotal('list_comm'), 5);
+  const memb  = cap(getListTotal('list_memb'), 5);
+  const ugc   = parseFloat(document.getElementById('ugc_tier').value)||0;
+  const sec2  = cap(org+chair+res+comm+memb+ugc, 45);
+
+  // §3
+  const sec3 = cap(getListTotal('list_nat_pol')+getListTotal('list_nat_com'), 10);
+  // §4
+  const sec4 = cap(getListTotal('list_int_pol')+getListTotal('list_int_com'), 10);
+
+  const total = sec1+sec2+sec3+sec4;
+
+  // Update sidebar
+  setText('sp_q12', q12f+q12o);
+  setText('sp_q34', q34f+q34o);
+  setText('sp_oi',  oif+oio);
+  setText('sp_ni',  0);
+  setText('sp_cf',  cff+cfo);
+  setText('sp_o1',  s1_other);
+  setText('sp_s1',  sec1.toFixed(1));
+  setText('sp_s2',  sec2.toFixed(1));
+  setText('sp_s3',  sec3.toFixed(1));
+  setText('sp_s4',  sec4.toFixed(1));
+  setText('sp_tot', total.toFixed(1));
+
+  // Tiles
+  setTile('tv_s1','t_s1',sec1,50,'ok');
+  setTile('tv_s2','t_s2',sec2,20,'ok');
+  setText('tv_s3', sec3.toFixed(1));
+  setText('tv_s4', sec4.toFixed(1));
+  setText('tv_tot', total.toFixed(1));
+  document.getElementById('t_tot').className = 'tile accent';
+
+  // Eligibility
+  const elig = document.getElementById('eligBadge');
+  if (sec1<50)      { elig.className='elig-badge elig-no';   elig.textContent='❌ Section 1 < 50 pts'; }
+  else if (sec2<20) { elig.className='elig-badge elig-no';   elig.textContent='❌ Section 2 < 20 pts'; }
+  else if (total<70){ elig.className='elig-badge elig-warn'; elig.textContent='⚠️ Total < 70 pts'; }
+  else              { elig.className='elig-badge elig-ok';   elig.textContent='✅ Eligible ('+total.toFixed(1)+' pts)'; }
+
+  renderManual();
+}
+
+function setTile(valId, tileId, val, min, okClass) {
+  document.getElementById(valId).textContent = val.toFixed(1);
+  const tile = document.getElementById(tileId);
+  tile.className = 'tile ' + (val >= min ? okClass : 'warn');
+}
+
+function setText(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = v;
+}
+
+function renderManual() {
+  const sections = [
+    { title:'§1 — Other Items', lists:[
+      {label:'Editorial board (indexed)', id:'list_edit_idx'},
+      {label:'Editorial board (non-indexed)', id:'list_edit_ni'},
+      {label:'Reviewer (indexed journals)', id:'list_rev_idx', note:'max 4 pts'},
+      {label:'International award', id:'list_int_aw'},
+      {label:'National award', id:'list_nat_aw'},
+      {label:'Uni/institutional award', id:'list_uni_aw', note:'max 6 pts'},
+      {label:'International grant', id:'list_int_gr'},
+      {label:'National grant', id:'list_nat_gr'},
+      {label:'PhD supervision', id:'list_phd'},
+      {label:'Patent', id:'list_patent', note:'max 10 pts'},
+    ]},
+    { title:'§2 — Outreach', note:'max 45 pts', lists:[
+      {label:'Organizing role', id:'list_org', note:'max 9 pts'},
+      {label:'Session chair', id:'list_chair', note:'max 5 pts'},
+      {label:'Resource person', id:'list_res', note:'max 5 pts'},
+      {label:'Community activities', id:'list_comm', note:'max 5 pts'},
+      {label:'Professional membership', id:'list_memb', note:'max 5 pts'},
+      {label:'UGC Tier', id:null, pts: parseFloat(document.getElementById('ugc_tier').value)||0},
+    ]},
+    { title:'§3 — National Service', note:'max 10 pts', lists:[
+      {label:'National policy development', id:'list_nat_pol'},
+      {label:'National committee', id:'list_nat_com'},
+    ]},
+    { title:'§4 — International Service', note:'max 10 pts', lists:[
+      {label:'International policy', id:'list_int_pol'},
+      {label:'International committee', id:'list_int_com'},
+    ]},
+  ];
+
+  let html = '';
+  sections.forEach(sec => {
+    let rows = '';
+    let secTotal = 0;
+    sec.lists.forEach(l => {
+      if (l.id === null) {
+        // UGC tier
+        const pts = l.pts;
+        secTotal += pts;
+        rows += `<tr><td>${l.label}</td><td>Tier: ${document.getElementById('ugc_tier').options[document.getElementById('ugc_tier').selectedIndex].text}</td><td class="td-pts">${pts}</td></tr>`;
+        return;
+      }
+      const items = getListItems(l.id);
+      if (!items.length) return;
+      items.forEach((item,i) => {
+        secTotal += item.pts;
+        rows += `<tr><td>${i===0?l.label+(l.note?` <small style="color:var(--fg3)">(${l.note})</small>`:''): ''}</td><td>${esc(item.desc)}</td><td class="td-pts">${item.pts}</td></tr>`;
+      });
+    });
+    if (!rows) return;
+    html += `
+      <div class="pub-section">
+        <div class="psec-hdr" onclick="toggleSec(this)">
+          <div class="psec-left">
+            <span class="pts-chip">${secTotal.toFixed(1)} pts</span>
+            <div><div class="psec-title">${sec.title}</div>${sec.note?`<div class="psec-sub">${sec.note}</div>`:''}</div>
+          </div>
+          <span class="chev">▼</span>
+        </div>
+        <div class="pub-table-wrap open">
+          <table class="manual-table">
+            <tr><th>Category</th><th>Item</th><th>Pts</th></tr>
+            ${rows}
+          </table>
+        </div>
+        <div class="psec-foot">Subtotal: <strong>${secTotal.toFixed(1)} pts</strong></div>
+      </div>`;
+  });
+  document.getElementById('manualSections').innerHTML = html;
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
