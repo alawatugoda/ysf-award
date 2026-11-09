@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YSF Research Award Calculator</title>
+<style>
+:root{--bg:#f8f7f5;--surface:#fff;--border:#e2e0db;--fg:#1a1917;--fg-muted:#6b6762;--accent:#2563eb;--accent-soft:#dbeafe;--green:#065f46;--green-bg:#d1fae5;--red:#991b1b;--red-bg:#fee2e2;--yellow:#92400e;--yellow-bg:#fef3c7;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;}
+.header{background:var(--accent);color:#fff;padding:20px 24px;}
+.header h1{font-size:1.3rem;font-weight:700;}
+.header p{opacity:.85;font-size:.85rem;margin-top:4px;}
+.container{max-width:900px;margin:0 auto;padding:24px;}
+.oa-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;}
+.oa-box h2{font-size:1rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.oa-row{display:flex;gap:10px;align-items:flex-end;}
+.oa-row input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:.9rem;outline:none;}
+.oa-row input:focus{border-color:var(--accent);}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:.88rem;font-weight:600;cursor:pointer;}
+.btn:hover{opacity:.9;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.loading{color:var(--fg-muted);font-size:.85rem;margin-top:8px;}
+.profile-card{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:14px;margin-top:12px;display:none;}
+.profile-name{font-weight:700;font-size:1rem;}
+.profile-stats{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;}
+.pstat{font-size:.82rem;color:var(--fg-muted);}
+.pstat strong{color:var(--fg);}
+
+.section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.section-title{font-size:.95rem;font-weight:700;margin-bottom:4px;}
+.section-sub{font-size:.8rem;color:var(--fg-muted);margin-bottom:14px;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;font-size:.78rem;color:var(--fg-muted);padding:6px 8px;border-bottom:2px solid var(--border);}
+td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+td:last-child{text-align:right;}
+.criteria-name{font-size:.85rem;}
+.criteria-note{font-size:.75rem;color:var(--fg-muted);}
+.pts-badge{background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:5px;font-size:.78rem;font-weight:600;white-space:nowrap;}
+.count-input{width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;text-align:center;font-size:.88rem;}
+.count-input:focus{outline:none;border-color:var(--accent);}
+.row-total{font-weight:600;font-size:.85rem;color:var(--accent);}
+.auto-badge{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:600;}
+
+.score-panel{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:20px;margin-top:16px;position:sticky;bottom:16px;}
+.score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+.score-box{background:var(--bg);border-radius:8px;padding:12px;text-align:center;}
+.score-val{font-size:1.6rem;font-weight:700;color:var(--accent);}
+.score-lbl{font-size:.75rem;color:var(--fg-muted);margin-top:2px;}
+.eligible-yes{background:var(--green-bg);color:var(--green);border-radius:8px;padding:12px;text-align:center;font-weight:700;}
+.eligible-no{background:var(--red-bg);color:var(--red);border-radius:8px;padding:12px;text-align:center;font-weight:700;}
+.eligible-warn{background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:12px;text-align:center;font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏆 Young Scientist Award 2026 — Score Calculator</h1>
+  <p>OpenAlex ID ලෙස publications auto-fetch කරලා marks calculate කරනවා</p>
+</div>
+
+<div class="container">
+
+<!-- OpenAlex fetch -->
+<div class="oa-box">
+  <h2>🔍 Author Lookup</h2>
+  <div class="oa-row">
+    <input type="text" id="oaId" placeholder="OpenAlex Author ID (e.g. A5056029451)" value="">
+    <button class="btn" onclick="fetchAuthor()">Fetch from OpenAlex</button>
+  </div>
+  <div class="loading" id="loadMsg"></div>
+  <div class="profile-card" id="profileCard">
+    <div class="profile-name" id="profileName"></div>
+    <div class="profile-stats" id="profileStats"></div>
+  </div>
+</div>
+
+<!-- Section 1: R&D -->
+<div class="section">
+  <div class="section-title">Section 1 — Research & Development</div>
+  <div class="section-sub">Minimum 50 points required · No upper limit</div>
+  <table>
+    <tr><th>Criteria</th><th>Points</th><th>Count</th><th>Total</th></tr>
+
+    <tr>
+      <td><div class="criteria-name">Q1 / Q2 Journal Publication</div><div class="criteria-note">1st/Corresponding author × 2 points multiplier</div></td>
+      <td><span class="pts-badge">6 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="q1q2" oninput="calc()"> <span id="q1q2_auto" class="auto-badge" style="display:none">Auto</span></td>
+      <td class="row-total" id="q1q2_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Q3 / Q4 Journal Publication</div><div class="criteria-note">1st/Corresponding author × 2 points multiplier</div></td>
+      <td><span class="pts-badge">4 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="q3q4" oninput="calc()"></td>
+      <td class="row-total" id="q3q4_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Other Indexed Journal (Scopus/WoS)</div></td>
+      <td><span class="pts-badge">2 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="indexed" oninput="calc()"> <span id="indexed_auto" class="auto-badge" style="display:none">Auto</span></td>
+      <td class="row-total" id="indexed_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Non-indexed Journal</div><div class="criteria-note">Max 15 points</div></td>
+      <td><span class="pts-badge">1.5 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="nonidx" oninput="calc()"></td>
+      <td class="row-total" id="nonidx_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Conference Full Paper / Extended Abstract</div><div class="criteria-note">Max 10 points</div></td>
+      <td><span class="pts-badge">1 pt</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="conf" oninput="calc()"> <span id="conf_auto" class="auto-badge" style="display:none">Auto</span></td>
+      <td class="row-total" id="conf_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Conference Abstract Only</div><div class="criteria-note">Max 10 points</div></td>
+      <td><span class="pts-badge">0.5 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="abstract" oninput="calc()"></td>
+      <td class="row-total" id="abstract_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Book Published</div></td>
+      <td><span class="pts-badge">3 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="book" oninput="calc()"></td>
+      <td class="row-total" id="book_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Book Chapter</div></td>
+      <td><span class="pts-badge">2 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="chapter" oninput="calc()"></td>
+      <td class="row-total" id="chapter_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Editorial Board — Indexed Journal</div><div class="criteria-note">Chief Editor ×2, Associate ×1.5</div></td>
+      <td><span class="pts-badge">4 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="edit_idx" oninput="calc()"></td>
+      <td class="row-total" id="edit_idx_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Editorial Board — Non-indexed Journal</div></td>
+      <td><span class="pts-badge">2 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="edit_nonidx" oninput="calc()"></td>
+      <td class="row-total" id="edit_nonidx_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Reviewer — Indexed Journal</div><div class="criteria-note">Max 4 points</div></td>
+      <td><span class="pts-badge">1 pt</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="rev_idx" oninput="calc()"></td>
+      <td class="row-total" id="rev_idx_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Reviewer — Non-indexed Journal</div><div class="criteria-note">Max 2 points</div></td>
+      <td><span class="pts-badge">0.5 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="rev_nonidx" oninput="calc()"></td>
+      <td class="row-total" id="rev_nonidx_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">International Research Award</div></td>
+      <td><span class="pts-badge">6 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="int_award" oninput="calc()"></td>
+      <td class="row-total" id="int_award_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">National Research Award</div></td>
+      <td><span class="pts-badge">4 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="nat_award" oninput="calc()"></td>
+      <td class="row-total" id="nat_award_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">University/Institutional Research Award</div><div class="criteria-note">Max 6 points</div></td>
+      <td><span class="pts-badge">2 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="uni_award" oninput="calc()"></td>
+      <td class="row-total" id="uni_award_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">International Research Grant</div></td>
+      <td><span class="pts-badge">4 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="int_grant" oninput="calc()"></td>
+      <td class="row-total" id="int_grant_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">National Research Grant</div></td>
+      <td><span class="pts-badge">3 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="nat_grant" oninput="calc()"></td>
+      <td class="row-total" id="nat_grant_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">University/Institutional Research Grant</div></td>
+      <td><span class="pts-badge">2 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="uni_grant" oninput="calc()"></td>
+      <td class="row-total" id="uni_grant_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">PhD Supervision</div><div class="criteria-note">Principal ×1, Other ×0.5</div></td>
+      <td><span class="pts-badge">4 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="phd" oninput="calc()"></td>
+      <td class="row-total" id="phd_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">MPhil Supervision</div></td>
+      <td><span class="pts-badge">2 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="mphil" oninput="calc()"></td>
+      <td class="row-total" id="mphil_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">MSc Supervision</div></td>
+      <td><span class="pts-badge">1 pt</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="msc" oninput="calc()"></td>
+      <td class="row-total" id="msc_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Patent Awarded</div><div class="criteria-note">Max 10 points</div></td>
+      <td><span class="pts-badge">5 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="patent" oninput="calc()"></td>
+      <td class="row-total" id="patent_t">0</td>
+    </tr>
+  </table>
+</div>
+
+<!-- Section 2: Outreach -->
+<div class="section">
+  <div class="section-title">Section 2 — Science Communication & Outreach</div>
+  <div class="section-sub">Minimum 20 points · Maximum 45 points</div>
+  <table>
+    <tr><th>Criteria</th><th>Points</th><th>Count</th><th>Total</th></tr>
+    <tr>
+      <td><div class="criteria-name">Main Coordinator — Workshop/Conference</div><div class="criteria-note">International ×1.5 · Max 9 pts</div></td>
+      <td><span class="pts-badge">3 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="coord" oninput="calc()"></td>
+      <td class="row-total" id="coord_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Other Organizing Role — Workshop/Conference</div><div class="criteria-note">International ×1.5 · Max 6 pts</div></td>
+      <td><span class="pts-badge">2 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="org" oninput="calc()"></td>
+      <td class="row-total" id="org_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Session Chair</div><div class="criteria-note">Max 5 pts</div></td>
+      <td><span class="pts-badge">0.5 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="chair" oninput="calc()"></td>
+      <td class="row-total" id="chair_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Newsletter / Magazine Articles</div><div class="criteria-note">Max 3 pts</div></td>
+      <td><span class="pts-badge">0.5 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="newsletter" oninput="calc()"></td>
+      <td class="row-total" id="newsletter_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Resource Person — Workshop/Training</div><div class="criteria-note">Max 5 pts</div></td>
+      <td><span class="pts-badge">1 pt</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="resource" oninput="calc()"></td>
+      <td class="row-total" id="resource_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Community Activities to Popularize Science</div><div class="criteria-note">Max 5 pts</div></td>
+      <td><span class="pts-badge">1 pt</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="community" oninput="calc()"></td>
+      <td class="row-total" id="community_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">Active Membership in Professional Bodies</div><div class="criteria-note">Max 5 pts</div></td>
+      <td><span class="pts-badge">1 pt</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="member" oninput="calc()"></td>
+      <td class="row-total" id="member_t">0</td>
+    </tr>
+    <tr>
+      <td><div class="criteria-name">UGC Research Performance Tier (Google h-index)</div><div class="criteria-note">Tier 4* = 10, Tier 4 = 8, Tier 3 = 6, Tier 2 = 4, Tier 1 = 0</div></td>
+      <td><span class="pts-badge">Up to 10</span></td>
+      <td>
+        <select class="count-input" id="ugc_tier" onchange="calc()" style="width:90px">
+          <option value="0">Tier 1</option>
+          <option value="4">Tier 2</option>
+          <option value="6">Tier 3</option>
+          <option value="8">Tier 4</option>
+          <option value="10">Tier 4*</option>
+        </select>
+      </td>
+      <td class="row-total" id="ugc_t">0</td>
+    </tr>
+  </table>
+</div>
+
+<!-- Section 3 & 4 -->
+<div class="section">
+  <div class="section-title">Section 3 — National Service (Max 10 pts)</div>
+  <table>
+    <tr><th>Criteria</th><th>Points</th><th>Count</th><th>Total</th></tr>
+    <tr>
+      <td>National Level Policy Development</td>
+      <td><span class="pts-badge">3 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="nat_policy" oninput="calc()"></td>
+      <td class="row-total" id="nat_policy_t">0</td>
+    </tr>
+    <tr>
+      <td>Member of National Committee</td>
+      <td><span class="pts-badge">2 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="nat_comm" oninput="calc()"></td>
+      <td class="row-total" id="nat_comm_t">0</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">Section 4 — International Service (Max 10 pts)</div>
+  <table>
+    <tr><th>Criteria</th><th>Points</th><th>Count</th><th>Total</th></tr>
+    <tr>
+      <td>International Level Policy Development</td>
+      <td><span class="pts-badge">4 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="int_policy" oninput="calc()"></td>
+      <td class="row-total" id="int_policy_t">0</td>
+    </tr>
+    <tr>
+      <td>Member of International Committee</td>
+      <td><span class="pts-badge">3 pts</span></td>
+      <td><input class="count-input" type="number" min="0" value="0" id="int_comm" oninput="calc()"></td>
+      <td class="row-total" id="int_comm_t">0</td>
+    </tr>
+  </table>
+</div>
+
+<!-- Score Panel -->
+<div class="score-panel">
+  <div class="score-grid">
+    <div class="score-box">
+      <div class="score-val" id="sec1_score">0</div>
+      <div class="score-lbl">Section 1 (R&D)<br><small>Min 50 required</small></div>
+    </div>
+    <div class="score-box">
+      <div class="score-val" id="sec2_score">0</div>
+      <div class="score-lbl">Section 2 (Outreach)<br><small>Min 20 · Max 45</small></div>
+    </div>
+    <div class="score-box">
+      <div class="score-val" id="sec3_score">0</div>
+      <div class="score-lbl">Section 3 (National)<br><small>Max 10</small></div>
+    </div>
+    <div class="score-box">
+      <div class="score-val" id="sec4_score">0</div>
+      <div class="score-lbl">Section 4 (International)<br><small>Max 10</small></div>
+    </div>
+    <div class="score-box" style="background:var(--accent-soft)">
+      <div class="score-val" id="total_score" style="font-size:2rem">0</div>
+      <div class="score-lbl"><strong>Total Score</strong><br><small>Min 70 to apply</small></div>
+    </div>
+  </div>
+  <div id="eligibility_box" class="eligible-warn">Enter data to check eligibility</div>
+</div>
+
+</div>
+
+<script>
+const API_KEY = 'w0kxNmNub5piF2PcfVwHpd';
+
+// 5-year window: 2021-11-13 to 2026-11-13
+const YEAR_FROM = 2021;
+const YEAR_TO = 2026;
+
+async function fetchAuthor() {
+  const id = document.getElementById('oaId').value.trim();
+  if (!id) return;
+  const btn = document.querySelector('.btn');
+  btn.disabled = true;
+  document.getElementById('loadMsg').textContent = 'Fetching author profile…';
+  document.getElementById('profileCard').style.display = 'none';
+
+  try {
+    // Fetch author profile
+    const r = await fetch(`https://api.openalex.org/authors/${id}?mailto=alawatugoda@eng.pdn.ac.lk`);
+    const a = await r.json();
+
+
+    document.getElementById('profileName').textContent = a.display_name || id;
+    document.getElementById('profileStats').innerHTML = `
+      <span class="pstat"><strong>${a.works_count||0}</strong> total works</span>
+      <span class="pstat"><strong>${a.cited_by_count||0}</strong> citations</span>
+      <span class="pstat"><strong>${a.summary_stats?.h_index||0}</strong> h-index</span>
+    `;
+    document.getElementById('profileCard').style.display = 'block';
+
+    // Set UGC tier based on h-index
+    const h = a.summary_stats?.h_index || 0;
+    const tierSel = document.getElementById('ugc_tier');
+    if (h >= 10) tierSel.value = '10';
+    else if (h >= 7) tierSel.value = '8';
+    else if (h >= 4) tierSel.value = '6';
+    else if (h >= 2) tierSel.value = '4';
+    else tierSel.value = '0';
+
+    // Fetch works (last 5 years)
+    document.getElementById('loadMsg').textContent = 'Fetching publications (last 5 years)…';
+    let page = 1, allWorks = [];
+    while (true) {
+      const wr = await fetch(`https://api.openalex.org/works?filter=author.id:${id},publication_year:${YEAR_FROM}-${YEAR_TO}&per-page=50&page=${page}&mailto=alawatugoda@eng.pdn.ac.lk`);
+      const wd = await wr.json();
+
+      const results = wd.results || [];
+      allWorks = allWorks.concat(results);
+      if (results.length < 50) break;
+      page++;
+    }
+
+    // Classify
+    let journals = 0, conferences = 0;
+    allWorks.forEach(w => {
+      const t = (w.type || '').toLowerCase();
+      if (t === 'journal-article' || t === 'article') journals++;
+      else if (t === 'proceedings-article' || t === 'conference-paper') conferences++;
+    });
+
+    document.getElementById('indexed').value = journals;
+    document.getElementById('conf').value = Math.min(conferences, 10);
+
+    // Show auto badges
+    document.getElementById('indexed_auto').style.display = 'inline';
+    document.getElementById('conf_auto').style.display = 'inline';
+
+    document.getElementById('loadMsg').textContent = `✅ Found ${allWorks.length} publications (${YEAR_FROM}–${YEAR_TO}): ${journals} journals, ${conferences} conferences`;
+    calc();
+
+  } catch(e) {
+    document.getElementById('loadMsg').textContent = '❌ Error: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
+function cap(val, max) { return Math.min(val, max); }
+
+function calc() {
+  const v = id => parseFloat(document.getElementById(id).value) || 0;
+
+  // Section 1
+  const s1 = {
+    q1q2:    v('q1q2') * 6,
+    q3q4:    v('q3q4') * 4,
+    indexed: v('indexed') * 2,
+    nonidx:  cap(v('nonidx') * 1.5, 15),
+    conf:    cap(v('conf') * 1, 10),
+    abstract:cap(v('abstract') * 0.5, 10),
+    book:    v('book') * 3,
+    chapter: v('chapter') * 2,
+    edit_idx:v('edit_idx') * 4,
+    edit_nonidx: v('edit_nonidx') * 2,
+    rev_idx: cap(v('rev_idx') * 1, 4),
+    rev_nonidx: cap(v('rev_nonidx') * 0.5, 2),
+    int_award: v('int_award') * 6,
+    nat_award: v('nat_award') * 4,
+    uni_award: cap(v('uni_award') * 2, 6),
+    int_grant: v('int_grant') * 4,
+    nat_grant: v('nat_grant') * 3,
+    uni_grant: v('uni_grant') * 2,
+    phd:     v('phd') * 4,
+    mphil:   v('mphil') * 2,
+    msc:     v('msc') * 1,
+    patent:  cap(v('patent') * 5, 10),
+  };
+
+  Object.keys(s1).forEach(k => {
+    const el = document.getElementById(k + '_t');
+    if (el) el.textContent = s1[k].toFixed(1).replace('.0','');
+  });
+
+  const sec1 = Object.values(s1).reduce((a,b) => a+b, 0);
+
+  // Section 2
+  const s2 = {
+    coord:    cap(v('coord') * 3, 9),
+    org:      cap(v('org') * 2, 6),
+    chair:    cap(v('chair') * 0.5, 5),
+    newsletter: cap(v('newsletter') * 0.5, 3),
+    resource: cap(v('resource') * 1, 5),
+    community:cap(v('community') * 1, 5),
+    member:   cap(v('member') * 1, 5),
+    ugc:      parseFloat(document.getElementById('ugc_tier').value) || 0,
+  };
+
+  Object.keys(s2).forEach(k => {
+    const el = document.getElementById(k + '_t') || document.getElementById('ugc_t');
+    if (k === 'ugc') { document.getElementById('ugc_t').textContent = s2.ugc; return; }
+    if (el) el.textContent = s2[k].toFixed(1).replace('.0','');
+  });
+
+  const sec2_raw = Object.values(s2).reduce((a,b) => a+b, 0);
+  const sec2 = cap(sec2_raw, 45);
+
+  // Section 3
+  const sec3_raw = v('nat_policy')*3 + v('nat_comm')*2;
+  const sec3 = cap(sec3_raw, 10);
+  document.getElementById('nat_policy_t').textContent = (v('nat_policy')*3).toFixed(1).replace('.0','');
+  document.getElementById('nat_comm_t').textContent = (v('nat_comm')*2).toFixed(1).replace('.0','');
+
+  // Section 4
+  const sec4_raw = v('int_policy')*4 + v('int_comm')*3;
+  const sec4 = cap(sec4_raw, 10);
+  document.getElementById('int_policy_t').textContent = (v('int_policy')*4).toFixed(1).replace('.0','');
+  document.getElementById('int_comm_t').textContent = (v('int_comm')*3).toFixed(1).replace('.0','');
+
+  const total = sec1 + sec2 + sec3 + sec4;
+
+  document.getElementById('sec1_score').textContent = sec1.toFixed(1);
+  document.getElementById('sec2_score').textContent = sec2.toFixed(1);
+  document.getElementById('sec3_score').textContent = sec3.toFixed(1);
+  document.getElementById('sec4_score').textContent = sec4.toFixed(1);
+  document.getElementById('total_score').textContent = total.toFixed(1);
+
+  // Eligibility
+  const elig = document.getElementById('eligibility_box');
+  if (sec1 < 50) {
+    elig.className = 'eligible-no';
+    elig.textContent = `❌ Not eligible — Section 1 score (${sec1.toFixed(1)}) is below minimum 50 points`;
+  } else if (sec2 < 20) {
+    elig.className = 'eligible-no';
+    elig.textContent = `❌ Not eligible — Section 2 score (${sec2.toFixed(1)}) is below minimum 20 points`;
+  } else if (total < 70) {
+    elig.className = 'eligible-warn';
+    elig.textContent = `⚠️ Below threshold — Total (${total.toFixed(1)}) is below minimum 70 points`;
+  } else {
+    elig.className = 'eligible-yes';
+    elig.textContent = `✅ Eligible to apply — Total score: ${total.toFixed(1)} points`;
+  }
+}
+
+calc();
+</script>
+</body>
+</html>
