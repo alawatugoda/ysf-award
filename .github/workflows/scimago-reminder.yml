@@ -3,6 +3,7 @@ name: Scimago Update Reminder
 on:
   schedule:
     - cron: '0 2 1 * *'  # Every month 1st at 2am UTC
+  workflow_dispatch:      # Manual trigger for testing
 
 permissions:
   issues: write
