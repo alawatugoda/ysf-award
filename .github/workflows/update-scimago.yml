@@ -5,6 +5,9 @@ on:
     - cron: '0 2 1 * *'  # Every month 1st at 2am UTC
   workflow_dispatch:      # Manual trigger
 
+permissions:
+  contents: write
+
 jobs:
   update:
     runs-on: ubuntu-latest
