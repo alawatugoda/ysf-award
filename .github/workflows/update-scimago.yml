@@ -1,10 +1,11 @@
 name: Update Scimago Data
 
 on:
-  workflow_dispatch:  # Manual trigger only — run after uploading scimago_raw.csv
+  workflow_dispatch:  # Manual trigger only — run after uploading new scimagojr CSV
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   update:
@@ -14,16 +15,39 @@ jobs:
 
       - name: Find Scimago CSV
         run: |
-          # Accept any CSV file starting with "scimagojr" in the repo root
           CSV=$(ls scimagojr*.csv 2>/dev/null | head -1)
           if [ -z "$CSV" ]; then
-            echo "ERROR: No scimagojr*.csv file found in repo!"
-            echo "Upload the CSV from scimagojr.com/journalrank.php (keep original filename) then run this workflow."
-            exit 1
+            echo "::warning::No scimagojr*.csv found — please download from scimagojr.com/journalrank.php, upload to this repo, and run workflow manually."
+            echo "SKIP=true" >> $GITHUB_ENV
+          else
+            echo "Using CSV: $CSV ($(wc -l < "$CSV") lines)"
+            head -1 "$CSV" | cut -c1-150
+            echo "CSV_FILE=$CSV" >> $GITHUB_ENV
+            echo "SKIP=false" >> $GITHUB_ENV
           fi
-          echo "Using CSV: $CSV ($(wc -l < "$CSV") lines)"
-          head -1 "$CSV" | cut -c1-150
-          echo "CSV_FILE=$CSV" >> $GITHUB_ENV
+
+      - name: Create reminder issue if no CSV
+        if: env.SKIP == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `⚠️ Scimago CSV update needed — ${new Date().getFullYear()}`;
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'scimago-update'
+            });
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title: title,
+                body: `## Scimago Data Update Reminder\n\nThis is an automated reminder to update the Scimago journal rankings data.\n\n**Steps:**\n1. Go to https://www.scimagojr.com/journalrank.php\n2. Click "Download data" → save CSV\n3. Upload CSV to this repo (keep original filename like \`scimagojr_${new Date().getFullYear()}.csv\`)\n4. Go to Actions → "Update Scimago Data" → Run workflow\n\nThis issue will close automatically after a successful update.`,
+                labels: ['scimago-update']
+              });
+            }
+
+      - name: Skip if no CSV
+        if: env.SKIP == 'true'
+        run: echo "No CSV available — issue created as reminder. Exiting."
 
       - name: Convert CSV to JSON
         run: |
@@ -40,8 +64,9 @@ jobs:
                       continue
                   val = row.get('Issn', '')
                   for issn in val.replace(' ','').split(','):
-                      issn = issn.strip().replace('-','')
-                      if len(issn) == 8 and issn.isdigit():
+                      issn = issn.strip().replace('-','').upper()
+                      # Valid ISSN: 8 chars, first 7 digits, last digit or X
+                      if len(issn)==8 and issn[:7].isdigit() and (issn[7].isdigit() or issn[7]=='X'):
                           if issn not in issn_map:
                               issn_map[issn] = q
 
@@ -55,6 +80,7 @@ jobs:
           PYEOF
 
       - name: Commit updated JSON
+        if: env.SKIP != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -66,3 +92,24 @@ jobs:
             git commit -m "Update scimago_issn.json from Scimago $YEAR official CSV"
             git push
           fi
+
+      - name: Close reminder issue if exists
+        if: env.SKIP != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'scimago-update'
+            });
+            for (const issue of issues.data) {
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, state: 'closed'
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `✅ Scimago data updated successfully — scimago_issn.json regenerated.`
+              });
+            }
