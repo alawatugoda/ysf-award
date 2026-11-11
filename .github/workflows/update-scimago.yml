@@ -1,0 +1,57 @@
+name: Update Scimago Data
+
+on:
+  schedule:
+    - cron: '0 2 1 * *'  # Every month 1st at 2am UTC
+  workflow_dispatch:      # Manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Scimago CSV
+        run: |
+          curl -L "https://www.scimagojr.com/journalrank.php?out=xls" \
+            -H "User-Agent: Mozilla/5.0" \
+            -o scimago_raw.csv
+
+      - name: Convert CSV to JSON
+        run: |
+          python3 - << 'PYEOF'
+          import csv, json, sys
+
+          issn_map = {}
+          with open('scimago_raw.csv', encoding='utf-8-sig') as f:
+              reader = csv.DictReader(f, delimiter=';')
+              for row in reader:
+                  q = (row.get('SJR Best Quartile') or '').strip()
+                  if q not in ('Q1','Q2','Q3','Q4'):
+                      continue
+                  for field in ('Issn', 'ISSN'):
+                      val = row.get(field, '')
+                      for issn in val.replace(' ','').split(','):
+                          issn = issn.strip().replace('-','')
+                          if len(issn) == 8 and issn.isdigit():
+                              if issn not in issn_map:
+                                  issn_map[issn] = q
+
+          with open('scimago_issn.json', 'w') as f:
+              json.dump(issn_map, f, separators=(',',':'))
+
+          print(f"Done: {len(issn_map)} ISSNs")
+          PYEOF
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scimago_issn.json
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            YEAR=$(date +%Y)
+            git commit -m "Update scimago_issn.json from Scimago $YEAR data"
+            git push
+          fi
