@@ -40,7 +40,7 @@ jobs:
                       headers = list(rows[0].keys())
                       print(f"Headers ({delim}): {headers[:6]}")
                       for row in rows:
-                          q = (row.get('SJR Best Quartile') or row.get('Quartile') or '').strip()
+                          q = (row.get('SJR_Quartile') or row.get('SJR Best Quartile') or row.get('Quartile') or '').strip()
                           if q not in ('Q1','Q2','Q3','Q4'):
                               continue
                           for field in headers:
