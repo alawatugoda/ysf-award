@@ -1,0 +1,28 @@
+name: Scimago Update Reminder
+
+on:
+  schedule:
+    - cron: '0 2 1 * *'  # Every month 1st at 2am UTC
+
+permissions:
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create monthly reminder issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const now = new Date();
+            const month = now.toLocaleString('en-US', { month: 'long' });
+            const year = now.getFullYear();
+            const title = `📅 Scimago reminder — ${month} ${year}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: title,
+              body: `## Monthly Scimago Reminder\n\nThis is your automated monthly reminder to check if Scimago has released updated journal ranking data.\n\n**If new data is available:**\n1. Go to https://www.scimagojr.com/journalrank.php\n2. Click **"Download data"** → save CSV\n3. Upload CSV to this repo\n4. Go to **Actions → "Update Scimago Data" → Run workflow**\n\n*New Scimago data is typically released once a year (around April/May). You can close this issue if no update is needed.*`,
+              labels: ['scimago-update']
+            });
+            console.log(`Created reminder issue: ${title}`);
