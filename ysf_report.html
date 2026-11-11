@@ -669,7 +669,7 @@ async function loadScimago() {
 function safeIssns(work) {
   const raw = work.primary_location?.source?.issn;
   const arr = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-  return arr.filter(x=>x&&typeof x==='string');
+  return arr.filter(x=>x&&typeof x==='string').map(x=>x.trim().toUpperCase());
 }
 function getQ(work) {
   for(const issn of safeIssns(work)) {
