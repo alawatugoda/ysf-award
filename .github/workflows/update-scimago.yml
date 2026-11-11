@@ -1,9 +1,7 @@
 name: Update Scimago Data
 
 on:
-  schedule:
-    - cron: '0 2 1 * *'  # Every month 1st at 2am UTC
-  workflow_dispatch:      # Manual trigger anytime
+  workflow_dispatch:  # Manual trigger only — run after uploading scimago_raw.csv
 
 permissions:
   contents: write
@@ -14,59 +12,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Scimago CSV
+      - name: Find Scimago CSV
         run: |
-          # Scimago 2026 data from Zenodo (direct URL)
-          CSV_URL="https://zenodo.org/records/19376203/files/01042026_journal_database.csv?download=1"
-          echo "Downloading: $CSV_URL"
-          curl -L "$CSV_URL" -o scimago_raw.csv
-          echo "Lines: $(wc -l < scimago_raw.csv)"
-          head -1 scimago_raw.csv | cut -c1-200
+          # Accept any CSV file starting with "scimagojr" in the repo root
+          CSV=$(ls scimagojr*.csv 2>/dev/null | head -1)
+          if [ -z "$CSV" ]; then
+            echo "ERROR: No scimagojr*.csv file found in repo!"
+            echo "Upload the CSV from scimagojr.com/journalrank.php (keep original filename) then run this workflow."
+            exit 1
+          fi
+          echo "Using CSV: $CSV ($(wc -l < "$CSV") lines)"
+          head -1 "$CSV" | cut -c1-150
+          echo "CSV_FILE=$CSV" >> $GITHUB_ENV
 
       - name: Convert CSV to JSON
         run: |
           python3 - << 'PYEOF'
           import csv, json, os
 
+          csv_file = os.environ['CSV_FILE']
           issn_map = {}
-          # Try semicolon delimiter first (Scimago format), then comma
-          for delim in (';', ','):
-              try:
-                  with open('scimago_raw.csv', encoding='utf-8-sig') as f:
-                      reader = csv.DictReader(f, delimiter=delim)
-                      rows = list(reader)
-                      if not rows:
-                          continue
-                      headers = list(rows[0].keys())
-                      print(f"Headers ({delim}): {headers[:6]}")
-                      for row in rows:
-                          q = (row.get('SJR_Quartile') or row.get('SJR Best Quartile') or row.get('Quartile') or '').strip()
-                          if q not in ('Q1','Q2','Q3','Q4'):
-                              continue
-                          for field in headers:
-                              if 'issn' in field.lower():
-                                  val = row.get(field, '')
-                                  for issn in val.replace(' ','').split(','):
-                                      issn = issn.strip().replace('-','')
-                                      if len(issn) == 8 and issn.isdigit():
-                                          if issn not in issn_map:
-                                              issn_map[issn] = q
-                      if issn_map:
-                          break
-              except Exception as e:
-                  print(f"Error with delimiter '{delim}': {e}")
-                  continue
+          with open(csv_file, encoding='utf-8-sig') as f:
+              reader = csv.DictReader(f, delimiter=';')
+              for row in reader:
+                  q = (row.get('SJR Best Quartile') or '').strip()
+                  if q not in ('Q1','Q2','Q3','Q4'):
+                      continue
+                  val = row.get('Issn', '')
+                  for issn in val.replace(' ','').split(','):
+                      issn = issn.strip().replace('-','')
+                      if len(issn) == 8 and issn.isdigit():
+                          if issn not in issn_map:
+                              issn_map[issn] = q
 
           with open('scimago_issn.json', 'w') as f:
               json.dump(issn_map, f, separators=(',',':'))
 
           print(f"Done: {len(issn_map)} ISSNs written to scimago_issn.json")
-          if len(issn_map) < 1000:
-              print("WARNING: Very few ISSNs found — check CSV format!")
+          if len(issn_map) < 10000:
+              print("WARNING: Too few ISSNs — check CSV format (should be semicolon-delimited Scimago CSV)!")
               exit(1)
           PYEOF
 
-      - name: Commit if changed
+      - name: Commit updated JSON
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -75,6 +63,6 @@ jobs:
             echo "No changes to commit"
           else
             YEAR=$(date +%Y)
-            git commit -m "Update scimago_issn.json from Scimago $YEAR data"
+            git commit -m "Update scimago_issn.json from Scimago $YEAR official CSV"
             git push
           fi
