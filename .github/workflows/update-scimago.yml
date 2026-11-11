@@ -14,29 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Find latest Scimago CSV on Zenodo
-        id: zenodo
-        run: |
-          # Zenodo concept DOI for Scimago dataset — always resolves to latest version
-          RECORD=$(curl -sL "https://zenodo.org/api/records?q=scimago+journal+database&sort=mostrecent&size=1&communities=scimago" \
-            | python3 -c "import json,sys; r=json.load(sys.stdin)['hits']['hits']; print(r[0]['id'] if r else '')" 2>/dev/null || echo "")
-
-          # Fallback: use known Zenodo record for latest data
-          if [ -z "$RECORD" ]; then
-            # Try the known 2026 record first, fall back to searching
-            CSV_URL="https://zenodo.org/records/19376203/files/01042026_journal_database.csv?download=1"
-          else
-            CSV_URL=$(curl -sL "https://zenodo.org/api/records/$RECORD" \
-              | python3 -c "import json,sys; r=json.load(sys.stdin); files=r.get('files',[]); csv=[f for f in files if f['key'].endswith('.csv')]; print(csv[0]['links']['self'] if csv else '')" 2>/dev/null || echo "")
-          fi
-
-          echo "csv_url=$CSV_URL" >> $GITHUB_OUTPUT
-          echo "Using CSV: $CSV_URL"
-
       - name: Download Scimago CSV
         run: |
-          curl -L "${{ steps.zenodo.outputs.csv_url }}" -o scimago_raw.csv
-          wc -l scimago_raw.csv
+          # Scimago 2026 data from Zenodo (direct URL)
+          CSV_URL="https://zenodo.org/records/19376203/files/01042026_journal_database.csv?download=1"
+          echo "Downloading: $CSV_URL"
+          curl -L "$CSV_URL" -o scimago_raw.csv
+          echo "Lines: $(wc -l < scimago_raw.csv)"
+          head -1 scimago_raw.csv | cut -c1-200
 
       - name: Convert CSV to JSON
         run: |
