@@ -1,0 +1,2108 @@
+<title>YSF Report Generator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#f7f6f3;--surface:#fff;--surface2:#f0efe9;--border:#e3e1db;
+  --fg:#1a1917;--fg2:#6b6762;--fg3:#9d9994;
+  --accent:#1d4ed8;--accent-soft:#dbeafe;
+  --green:#15803d;--green-bg:#dcfce7;--green-border:#86efac;
+  --red:#b91c1c;--red-bg:#fee2e2;
+  --amber:#92400e;--amber-bg:#fef3c7;
+  --q1c:#0f766e;--q1b:#ccfbf1;--q2c:#1d4ed8;--q2b:#dbeafe;
+  --q3c:#7c3aed;--q3b:#ede9fe;--q4c:#b45309;--q4b:#fef3c7;
+  --ni:#64748b;--nib:#f1f5f9;
+}
+[data-theme="dark"]{
+  --bg:#111110;--surface:#1c1b19;--surface2:#252420;--border:#2e2d2a;
+  --fg:#f0ede8;--fg2:#888480;--fg3:#55524e;
+  --accent:#60a5fa;--accent-soft:#1e3a5f;
+  --green:#4ade80;--green-bg:#052e16;--green-border:#166534;
+  --red:#f87171;--red-bg:#450a0a;--amber:#fbbf24;--amber-bg:#451a03;
+  --q1c:#2dd4bf;--q1b:#042f2e;--q2c:#60a5fa;--q2b:#1e3a5f;
+  --q3c:#c084fc;--q3b:#3b1f6e;--q4c:#fb923c;--q4b:#431407;
+  --ni:#94a3b8;--nib:#1e293b;color-scheme:dark;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111110;--surface:#1c1b19;--surface2:#252420;--border:#2e2d2a;
+  --fg:#f0ede8;--fg2:#888480;--fg3:#55524e;
+  --accent:#60a5fa;--accent-soft:#1e3a5f;
+  --green:#4ade80;--green-bg:#052e16;--green-border:#166534;
+  --red:#f87171;--red-bg:#450a0a;--amber:#fbbf24;--amber-bg:#451a03;
+  --q1c:#2dd4bf;--q1b:#042f2e;--q2c:#60a5fa;--q2b:#1e3a5f;
+  --q3c:#c084fc;--q3b:#3b1f6e;--q4c:#fb923c;--q4b:#431407;
+  --ni:#94a3b8;--nib:#1e293b;color-scheme:dark;
+}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;
+  padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px));}
+
+.app{display:grid;grid-template-columns:350px 1fr;min-height:100vh;}
+@media(max-width:900px){.app{grid-template-columns:1fr;}}
+@media print{
+  .sidebar,.no-print,.tiles,.pg-in,
+  .toggle-corr,.del-btn,.move-sel,.drag-handle,.elig,.valBar,.profile-card,
+  #pubSections,#refSec,#evSec,#chkSec,#manualSections,
+  .psec-hdr,.twrap,.msec-body,.msec-hdr,.msec-foot{display:none!important;}
+  .main{padding:0!important;}
+  .app{display:block;}
+  th,td{padding:4px 6px;font-size:10px;}
+  .print-cover{display:block!important;}
+  body{font-size:11px;}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  :root{--bg:#fff;--surface:#fff;--surface2:#f5f5f5;--border:#ccc;--fg:#111;--fg2:#444;--fg3:#888;--accent:#1a56db;color-scheme:light;}
+}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:16px;overflow-y:auto;position:sticky;top:0;max-height:100vh;}
+.logo{font-size:.92rem;font-weight:700;display:flex;align-items:center;justify-content:space-between;}
+.logo-sub{font-size:.7rem;color:var(--fg2);margin-bottom:10px;}
+.theme-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:.75rem;cursor:pointer;color:var(--fg2);}
+.theme-btn:hover{background:var(--surface2);}
+
+.top-btns{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:12px;}
+.tbtn{padding:6px 4px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);
+  color:var(--fg);font-size:.72rem;font-weight:600;cursor:pointer;text-align:center;transition:background .15s;white-space:nowrap;}
+.tbtn:hover{background:var(--border);}
+.tbtn.accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+.tbtn.accent:hover{opacity:.88;}
+.tbtn.green{background:var(--green-bg);color:var(--green);border-color:var(--green-border);}
+
+.field{margin-bottom:8px;}
+.field label{display:block;font-size:.68rem;font-weight:600;color:var(--fg2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em;}
+.field input,.field select,.field textarea{width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);color:var(--fg);font-family:inherit;font-size:.82rem;outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{resize:vertical;}
+.wcount{font-size:.68rem;text-align:right;margin-top:1px;}
+.wcount.ok{color:var(--fg3);}  .wcount.over{color:var(--red);}
+.date-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.date-row .field{margin-bottom:0;}
+.qual-row{display:grid;grid-template-columns:2fr 2fr 1fr;gap:5px;}
+.qual-row .field{margin-bottom:0;}
+
+.divider{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--fg3);margin:11px 0 6px;padding-top:10px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;}
+.collapse-all-btn{font-size:.65rem;color:var(--accent);background:none;border:none;cursor:pointer;}
+
+.doi-row{display:flex;gap:5px;margin-bottom:6px;}
+.doi-row input{flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);color:var(--fg);font-size:.78rem;outline:none;}
+.doi-row input:focus{border-color:var(--accent);}
+.sm-btn{padding:5px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);
+  color:var(--fg);font-size:.75rem;cursor:pointer;white-space:nowrap;}
+.sm-btn:hover{background:var(--border);}
+
+.item-list{display:flex;flex-direction:column;gap:4px;margin-bottom:4px;}
+.item-row{display:flex;gap:4px;align-items:center;}
+.item-row input{flex:1;padding:4px 7px;border:1px solid var(--border);border-radius:5px;
+  background:var(--surface2);color:var(--fg);font-size:.75rem;outline:none;}
+.item-row input:focus{border-color:var(--accent);}
+.pts-in{width:50px!important;flex:none!important;text-align:center;}
+.del-btn{background:none;border:none;color:var(--fg3);cursor:pointer;font-size:.82rem;padding:0 2px;}
+.del-btn:hover{color:var(--red);}
+.add-btn{font-size:.72rem;color:var(--accent);background:none;border:none;cursor:pointer;padding:1px 0;}
+.add-btn:hover{text-decoration:underline;}
+.manual-add-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+.manual-add-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;}
+@media(max-width:600px){.manual-add-fields{grid-template-columns:1fr;}}
+
+/* UGC tier box */
+.ugc-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;}
+.ugc-tier-info{font-size:.72rem;color:var(--fg2);margin-top:6px;padding:6px 8px;
+  background:var(--accent-soft);border-radius:5px;line-height:1.6;}
+.ugc-link{font-size:.7rem;color:var(--accent);}
+
+/* Score panel */
+.score-panel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;}
+.score-row{display:flex;justify-content:space-between;font-size:.76rem;padding:2px 0;}
+.score-row span:last-child{font-weight:600;font-variant-numeric:tabular-nums;}
+.score-sep{border:none;border-top:1px solid var(--border);margin:5px 0;}
+.score-tot{font-size:.88rem;font-weight:700;}
+.elig{display:block;text-align:center;padding:5px;border-radius:6px;font-weight:700;font-size:.78rem;margin-top:6px;}
+.elig-ok{background:var(--green-bg);color:var(--green);}
+.elig-no{background:var(--red-bg);color:var(--red);}
+.elig-warn{background:var(--amber-bg);color:var(--amber);}
+.prog-wrap{margin-top:8px;display:flex;flex-direction:column;gap:5px;}
+.prog-item{font-size:.7rem;}
+.prog-label{display:flex;justify-content:space-between;margin-bottom:2px;color:var(--fg2);}
+.prog-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;transition:width .3s;}
+.prog-fill.ok{background:var(--green);}.prog-fill.warn{background:var(--amber);}.prog-fill.full{background:var(--accent);}
+
+/* ── Main ── */
+.main{padding:20px;min-width:0;}
+.page-hdr{margin-bottom:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.page-hdr-left h1{font-size:1rem;font-weight:700;}
+.page-hdr-left p{font-size:.78rem;color:var(--fg2);margin-top:1px;}
+.hdr-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.hdr-btn{padding:6px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);
+  color:var(--fg);font-size:.76rem;font-weight:600;cursor:pointer;}
+.hdr-btn:hover{background:var(--surface2);}
+.hdr-btn.print{background:var(--accent);color:#fff;border-color:var(--accent);}
+.hdr-btn.print:hover{opacity:.88;}
+
+.search-bar{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
+.search-in{flex:1;padding:7px 11px;border:1px solid var(--border);border-radius:7px;
+  background:var(--surface);color:var(--fg);font-size:.83rem;outline:none;}
+.search-in:focus{border-color:var(--accent);}
+.search-in::placeholder{color:var(--fg3);}
+
+.load-msg{font-size:.72rem;color:var(--fg2);margin-top:4px;line-height:1.5;min-height:14px;}
+.load-msg.err{color:var(--red);}
+
+.profile-card{background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;
+  padding:10px;margin-bottom:11px;display:none;}
+.profile-name{font-weight:700;font-size:.88rem;}
+.profile-stats{display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;}
+.pstat{font-size:.74rem;color:var(--fg2);}
+.pstat strong{color:var(--fg);}
+
+.tiles{display:none;grid-template-columns:repeat(auto-fit,minmax(85px,1fr));gap:6px;margin-bottom:12px;}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;}
+.tile-v{font-size:1.2rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+.tile-l{font-size:.6rem;color:var(--fg2);margin-top:2px;}
+.tile-m{font-size:.57rem;color:var(--fg3);}
+.t-ok{border-color:var(--green);} .t-ok .tile-v{color:var(--green);}
+.t-warn{border-color:var(--amber);} .t-warn .tile-v{color:var(--amber);}
+.t-accent{border-color:var(--accent);background:var(--accent-soft);} .t-accent .tile-v{color:var(--accent);}
+
+.val-bar{background:var(--amber-bg);border:1px solid var(--amber);border-radius:7px;
+  padding:6px 10px;margin-bottom:10px;font-size:.74rem;color:var(--amber);display:none;}
+.val-bar ul{margin:3px 0 0 14px;}
+
+/* Pub section */
+.pub-sec{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.pub-sec.drag-over{border-color:var(--accent);border-style:dashed;}
+.psec-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;gap:7px;}
+.psec-hdr:hover{background:var(--surface2);}
+.psec-l{display:flex;align-items:center;gap:6px;min-width:0;}
+.psec-title{font-weight:600;font-size:.83rem;}
+.psec-sub{font-size:.68rem;color:var(--fg2);}
+.pts-chip{background:var(--accent-soft);color:var(--accent);border-radius:12px;
+  padding:1px 8px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.chev{font-size:.64rem;color:var(--fg3);flex-shrink:0;}
+.warn-chip{background:var(--amber-bg);color:var(--amber);border-radius:12px;
+  padding:1px 7px;font-size:.67rem;font-weight:700;white-space:nowrap;}
+.twrap{overflow-x:auto;border-top:1px solid var(--border);display:none;}
+.twrap.open{display:block;}
+table{width:100%;border-collapse:collapse;min-width:600px;}
+th{font-size:.65rem;font-weight:600;color:var(--fg2);padding:5px 8px;
+  border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;background:var(--surface2);}
+td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:top;font-size:.75rem;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+.td-pts{font-weight:700;color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums;text-align:left;}
+.td-t{max-width:220px;}
+.td-links{display:flex;flex-direction:column;gap:1px;margin-top:2px;}
+.td-links a{color:var(--accent);font-size:.65rem;text-decoration:none;white-space:nowrap;}
+.td-links a:hover{text-decoration:underline;}
+.td-a{color:var(--fg2);font-size:.68rem;max-width:140px;}
+.badge{display:inline-block;border-radius:3px;padding:1px 4px;font-size:.65rem;font-weight:600;white-space:nowrap;}
+.bq1{background:var(--q1b);color:var(--q1c);}.bq2{background:var(--q2b);color:var(--q2c);}
+.bq3{background:var(--q3b);color:var(--q3c);}.bq4{background:var(--q4b);color:var(--q4c);}
+.bni{background:var(--nib);color:var(--ni);}
+.byes{background:var(--green-bg);color:var(--green);}.bno{background:var(--surface2);color:var(--fg3);}
+.psec-foot{padding:5px 12px;font-size:.7rem;color:var(--fg2);border-top:1px solid var(--border);}
+.td-edit{padding:2px 4px;border:1px solid var(--border);border-radius:3px;
+  background:var(--surface2);color:var(--fg);font-size:.7rem;font-family:inherit;outline:none;width:100%;}
+.td-edit:focus{border-color:var(--accent);}
+.pg-in{width:44px;}
+.toggle-corr{background:none;border:1px solid var(--border);border-radius:3px;
+  padding:1px 5px;font-size:.65rem;cursor:pointer;color:var(--fg2);transition:all .15s;white-space:nowrap;}
+.toggle-corr:hover{border-color:var(--accent);color:var(--accent);}
+.toggle-corr.is-first{background:var(--green-bg);color:var(--green);border-color:var(--green);}
+.evname{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--fg3);display:block;margin-top:1px;}
+.drag-handle{cursor:grab;color:var(--fg3);font-size:.8rem;padding:0 2px;user-select:none;}
+.move-sel{padding:1px 3px;border:1px solid var(--border);border-radius:3px;
+  background:var(--surface2);color:var(--fg);font-size:.64rem;cursor:pointer;outline:none;}
+tr.dup-row td{background:var(--red-bg)!important;}
+tr.hidden-row{display:none;}
+
+/* Manual sec */
+.manual-sec{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.msec-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;gap:7px;}
+.msec-hdr:hover{background:var(--surface2);}
+.msec-title{font-weight:600;font-size:.83rem;}
+.msec-body{display:none;border-top:1px solid var(--border);}
+.msec-body.open{display:block;}
+.msec-table{width:100%;border-collapse:collapse;min-width:340px;}
+.msec-table th{font-size:.65rem;font-weight:600;color:var(--fg2);padding:5px 8px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.msec-table td{padding:5px 8px;border-bottom:1px solid var(--border);font-size:.75rem;}
+.msec-table tr:last-child td{border-bottom:none;}
+.msec-foot{padding:5px 12px;font-size:.7rem;color:var(--fg2);border-top:1px solid var(--border);}
+
+/* Referee */
+.referee-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;}
+@media(max-width:600px){.referee-grid{grid-template-columns:1fr;}}
+.ref-card{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px;}
+.ref-title{font-size:.7rem;font-weight:700;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;}
+.ref-field{margin-bottom:4px;}
+.ref-field label{font-size:.66rem;color:var(--fg3);}
+.ref-field input{width:100%;padding:4px 7px;border:1px solid var(--border);border-radius:5px;
+  background:var(--surface);color:var(--fg);font-size:.76rem;outline:none;}
+.ref-field input:focus{border-color:var(--accent);}
+
+/* Checklist */
+.checklist{padding:10px 12px;}
+.check-item{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--border);font-size:.8rem;}
+.check-item:last-child{border-bottom:none;}
+.check-item input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--accent);}
+.check-item label{cursor:pointer;flex:1;}
+.check-item.done label{text-decoration:line-through;color:var(--fg2);}
+
+/* Evidence list */
+.ev-list-wrap{padding:10px 12px;}
+.ev-list-wrap pre{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--fg2);
+  background:var(--surface2);padding:8px 10px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;}
+.copy-ev-btn{margin-top:6px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);color:var(--fg);font-size:.74rem;cursor:pointer;}
+.copy-ev-btn:hover{background:var(--border);}
+
+/* Print cover */
+.print-cover{display:none;}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  :root{--bg:#fff;--surface:#fff;--surface2:#f5f5f5;--border:#ccc;--fg1:#111;--fg2:#444;--fg3:#888;--accent:#1a56db;color-scheme:light;}
+  .print-cover{display:block;page-break-after:always;}
+
+  /* ── Cover page (Page 1) ── */
+  .cv-header{background:#fff;color:#1a2744;padding:32px 40px 12px;margin:0;border-bottom:3px solid #1a2744;}
+  .cv-header-title{font-size:22pt;font-weight:700;line-height:1.2;margin-bottom:4px;}
+  .cv-header-sub{font-size:11pt;font-style:italic;color:#555;}
+  .cv-applicant-section{padding:28px 40px 0;}
+  .cv-label{font-size:7pt;letter-spacing:.12em;text-transform:uppercase;color:#888;font-weight:600;margin-bottom:4px;}
+  .cv-name{font-size:26pt;font-weight:700;color:#1a2744;border-left:4px solid #c9a84c;padding-left:12px;line-height:1.2;margin-bottom:4px;}
+  .cv-name-sub{font-size:9pt;color:#666;font-style:italic;padding-left:16px;margin-bottom:20px;}
+  .cv-divider{border:none;border-top:1px solid #ddd;margin:16px 0;}
+  .cv-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 40px;padding:0 40px;}
+  .cv-info-block{}
+  .cv-info-label{font-size:7pt;letter-spacing:.1em;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:3px;}
+  .cv-info-value{font-size:9.5pt;color:#222;line-height:1.4;}
+  .cv-doc-box{margin:20px 40px 0;border:1px solid #ddd;border-left:3px solid #c9a84c;padding:10px 14px;background:#fafaf8;}
+  .cv-doc-label{font-size:7pt;letter-spacing:.1em;text-transform:uppercase;color:#888;font-weight:600;margin-bottom:4px;}
+  .cv-doc-title{font-size:10pt;font-weight:700;color:#1a2744;margin-bottom:4px;}
+  .cv-doc-desc{font-size:8pt;color:#555;line-height:1.5;}
+
+  /* ── Research Summary (Page 2) ── */
+  .ps-research{page-break-before:always;padding:40px;}
+  .ps-research-title{font-size:13pt;font-weight:700;text-align:center;margin-bottom:4px;}
+  .ps-research-byline{font-size:8.5pt;text-align:center;color:#555;border-bottom:1px solid #ddd;padding-bottom:12px;margin-bottom:16px;}
+  .ps-research-body{font-size:9.5pt;line-height:1.7;text-align:justify;}
+
+  /* ── Application Form (Page 3) ── */
+  .ps-form{page-break-before:always;padding:30px 40px;}
+  .ps-form-title{font-size:13pt;font-weight:700;text-align:center;margin-bottom:16px;text-transform:uppercase;}
+  .ps-form-table{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:14px;}
+  .ps-form-table th,.ps-form-table td{border:1px solid #999;padding:5px 8px;vertical-align:top;}
+  .ps-form-table th{background:#e8e8e8;font-weight:700;font-size:9pt;}
+  .ps-form-section{font-weight:700;background:#d0d0d0;text-align:left;padding:5px 8px;font-size:9pt;}
+  .ps-form-label{color:#444;font-size:8.5pt;width:28%;}
+  .ps-form-value{font-weight:600;font-size:9pt;}
+  .ps-elig-box{border:2px solid #333;padding:8px 12px;text-align:center;font-weight:700;font-size:11pt;margin:12px 0;}
+
+  /* ── Scoring Table (Page 4) ── */
+  .ps-score{page-break-before:always;padding:30px 40px;}
+  .ps-score-title{font-size:11pt;font-weight:700;margin-bottom:4px;}
+  .ps-score-sub{font-size:8pt;color:#555;margin-bottom:12px;}
+  .ps-score-table{width:100%;border-collapse:collapse;font-size:8.5pt;}
+  .ps-score-table th{border:1px solid #999;background:#e0e0e0;padding:5px 7px;text-align:center;font-weight:700;}
+  .ps-score-table td{border:1px solid #ccc;padding:4px 7px;vertical-align:top;}
+  .ps-score-table .sec-header td{background:#d0d0d0;font-weight:700;font-size:9pt;}
+  .ps-score-table .subtotal td{background:#f0f0f0;font-weight:700;}
+  .ps-score-table .total-row td{background:#f0f0f0;color:#000;font-weight:700;font-size:10pt;border-top:2px solid #333;}
+  .pts-col{text-align:center;width:70px;}
+  .marks-col{text-align:center;width:80px;border-left:2px solid #999!important;}
+
+  /* ── Publications (Page 5+) ── */
+  .ps-pubs{page-break-before:always;padding:20px 30px;}
+  .ps-pubs-title{font-size:11pt;font-weight:700;text-align:center;margin-bottom:12px;text-transform:uppercase;}
+  .ps-pub-sec-title{font-size:9pt;font-weight:700;background:#e8e8e8;border:1px solid #ccc;padding:4px 8px;margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;}
+  .ps-pub-table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:8px;}
+  .ps-pub-table th{border:1px solid #ccc;background:#f0f0f0;padding:3px 5px;text-align:left;}
+  .ps-pub-table td{border:1px solid #ddd;padding:3px 5px;vertical-align:top;}
+  .ps-pub-table .pts-cell{text-align:left;font-weight:700;width:35px;}
+  .ps-pub-table .num-cell{text-align:center;width:25px;}
+
+  /* General print */
+  .cover-title,.cover-sub,.cover-grid,.cover-field,.cover-score,.cover-elig,.cover-summary,.cover-refs,.cover-ref{display:none!important;}
+}
+
+.empty-s{text-align:center;padding:16px;color:var(--fg3);font-size:.8rem;}
+</style>
+
+<div class="app">
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar no-print">
+  <div class="logo">
+    <span>YSF Report Generator</span>
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 Dark</button>
+  </div>
+  <div class="logo-sub">Young Scientist Award for Research</div>
+
+  <div class="top-btns">
+    <button class="tbtn accent" id="fetchBtn" onclick="fetchAll()">🔍 Fetch</button>
+    <button class="tbtn" onclick="exportJSON()">💾 Save</button>
+    <label class="tbtn" style="cursor:pointer">📂 Open<input type="file" accept=".json" style="display:none" onchange="importJSON(this)"></label>
+    <button class="tbtn green" id="printBtn" onclick="renderAll();window.print()" style="display:none">🖨️ Print</button>
+  </div>
+
+  <div class="divider">OpenAlex</div>
+  <div class="field"><label>Author ID</label><input type="text" id="f_oaid" placeholder="e.g. A5056029451" oninput="sl()"></div>
+  <div class="load-msg" id="loadMsg"></div>
+
+  <div class="divider">Personal Details</div>
+  <div class="field"><label>Full Name</label><input type="text" id="f_name" placeholder="Your full name" oninput="sl();updateHeader()"></div>
+  <div class="field"><label>Name with Initials</label><input type="text" id="f_initials" placeholder="e.g. J.A.B. Perera" oninput="sl()"></div>
+  <div class="field"><label>Date of Birth (DD/MM/YYYY)</label><input type="text" id="f_dob" placeholder="DD/MM/YYYY" oninput="sl();calcAge()"></div>
+  <div class="field"><label>Age as at deadline</label><input type="text" id="f_age" placeholder="Auto-calculated from DOB" readonly style="color:var(--fg2)"></div>
+  <div class="field"><label>Affiliation (enter manually)</label><input type="text" id="f_inst" placeholder="Your institution name" oninput="sl();updateHeader()"></div>
+  <div class="field"><label>Designation</label><input type="text" id="f_desig" placeholder="e.g. Senior Lecturer" oninput="sl()"></div>
+  <div class="field"><label>Mobile No.</label><input type="text" id="f_mobile" placeholder="07xxxxxxxxx" oninput="sl()"></div>
+  <div class="field"><label>Email</label><input type="text" id="f_email" placeholder="your@email.lk" oninput="sl()"></div>
+  <div class="field"><label>YSF Membership No.</label><input type="text" id="f_ysf" placeholder="e.g. Y/A/57" oninput="sl()"></div>
+
+  <div class="divider">Academic Qualifications</div>
+  <div class="field"><label>Undergraduate Degree</label>
+    <div class="qual-row">
+      <div class="field"><input type="text" id="ug_deg" placeholder="Degree" oninput="sl()"></div>
+      <div class="field"><input type="text" id="ug_uni" placeholder="University" oninput="sl()"></div>
+      <div class="field"><input type="text" id="ug_yr" placeholder="Year" oninput="sl()"></div>
+    </div>
+  </div>
+  <div class="field"><label>Postgraduate Degree</label>
+    <div class="qual-row">
+      <div class="field"><input type="text" id="pg_deg" placeholder="Degree" oninput="sl()"></div>
+      <div class="field"><input type="text" id="pg_uni" placeholder="University" oninput="sl()"></div>
+      <div class="field"><input type="text" id="pg_yr" placeholder="Year" oninput="sl()"></div>
+    </div>
+  </div>
+
+  <div class="divider">Field of Specialization</div>
+  <div class="field"><label>UGC Research Area (Circular 05/2018)</label>
+    <select id="f_field" onchange="sl();calcUGCTier()">
+      <option value="">— Select your field —</option>
+      <optgroup label="Group 1 — T1=0, T2≥2, T3≥7, T4≥13, T4*≥20">
+        <option value="g1_medical">Indigenous Medicine</option>
+        <option value="g1_medical">Medical Sciences</option>
+        <option value="g1_medical">Dental Sciences</option>
+      </optgroup>
+      <optgroup label="Group 2 — T1=0, T2≥2, T3≥6, T4≥11, T4*≥17">
+        <option value="g2_purescience">Pure Sciences (except Mathematics)</option>
+      </optgroup>
+      <optgroup label="Group 3 — T1=0, T2≥2, T3≥5, T4≥9, T4*≥14">
+        <option value="g3_engineering">Agriculture</option>
+        <option value="g3_engineering">Allied Health Sciences</option>
+        <option value="g3_engineering">Applied Sciences</option>
+        <option value="g3_engineering">Engineering</option>
+        <option value="g3_engineering">IT and Computing</option>
+        <option value="g3_engineering">Quantity Surveying</option>
+        <option value="g3_engineering">Veterinary Sciences</option>
+      </optgroup>
+      <optgroup label="Group 4 — T1=0, T2≥1, T3≥4, T4≥7, T4*≥11">
+        <option value="g4_humanities">Architecture</option>
+        <option value="g4_humanities">Arts</option>
+        <option value="g4_humanities">Design</option>
+        <option value="g4_humanities">Fine Arts</option>
+        <option value="g4_humanities">Humanities</option>
+        <option value="g4_humanities">Law</option>
+        <option value="g4_humanities">Management</option>
+        <option value="g4_humanities">Mathematics</option>
+        <option value="g4_humanities">Social Sciences</option>
+        <option value="g4_humanities">Town and Country Planning</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <div class="divider">Research Summary (max 300 words)</div>
+  <div class="field">
+    <textarea id="f_summary" rows="4" placeholder="Concise summary of research activities…" oninput="sl();updateWordCount()"></textarea>
+    <div class="wcount ok" id="wcount">0 / 300 words</div>
+  </div>
+
+  <div class="divider">Award Period</div>
+  <div class="date-row">
+    <div class="field"><label>From (DD/MM/YYYY)</label><input type="text" id="d_from" value="13/11/2021" oninput="sl();calcAge()"></div>
+    <div class="field"><label>To (DD/MM/YYYY)</label><input type="text" id="d_to" value="13/11/2026" oninput="sl();calcAge()"></div>
+  </div>
+
+  <div class="divider">Add Paper</div>
+  <div class="manual-add-box">
+    <p style="font-size:.75rem;color:var(--fg3);margin:0 0 10px">Enter a DOI to auto-fill details. For papers not in OpenAlex, fill the fields manually.</p>
+
+    <!-- Identifiers row -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;align-items:flex-end">
+      <div class="field" style="margin:0;flex:1;min-width:160px">
+        <label>DOI <small style="color:var(--fg3)">(auto-fill from OpenAlex / Crossref)</small></label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="man_doi" placeholder="10.xxxx/xxxxx" style="flex:1" onkeydown="if(event.key==='Enter')manFetchDoi()">
+          <button class="sm-btn" onclick="manFetchDoi()">Fetch</button>
+        </div>
+        <span id="man_doi_msg" style="font-size:.72rem"></span>
+      </div>
+      <div class="field" style="margin:0;min-width:140px">
+        <label>ISSN <small style="color:var(--fg3)">(Scimago lookup)</small></label>
+        <input type="text" id="man_issn" placeholder="1234-5678" style="width:120px">
+        <span id="man_q_badge" style="font-size:.8rem;font-weight:600;margin-left:6px"></span>
+      </div>
+      <div class="field" style="margin:0;min-width:160px">
+        <label>ISBN <small style="color:var(--fg3)">(books/chapters)</small></label>
+        <input type="text" id="man_isbn" placeholder="978-x-xxx-xxxxx-x" style="width:160px">
+      </div>
+    </div>
+
+    <!-- Main fields -->
+    <div class="manual-add-fields">
+      <div class="field"><label>Title *</label><input type="text" id="man_title" placeholder="Paper / book title"></div>
+      <div class="field"><label>Authors</label><input type="text" id="man_authors" placeholder="e.g. J.A.B. Perera, K. Silva"></div>
+      <div class="field"><label>Year</label><input type="number" id="man_year" placeholder="2023" min="1990" max="2030" style="width:100px"></div>
+      <div class="field"><label>Venue / Journal / Publisher</label><input type="text" id="man_venue" placeholder="Journal, conference or publisher name"></div>
+      <div class="field">
+        <label>Section</label>
+        <select id="man_section" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg1)">
+          <option value="" disabled selected>— Select section —</option>
+          <option value="q12">§1.1 · Q1/Q2 Journals (6 pts)</option>
+          <option value="q34">§1.2 · Q3/Q4 Journals (4 pts)</option>
+          <option value="oi">§1.3 · Other Indexed (2 pts)</option>
+          <option value="ni">§1.4 · Non-indexed (1.5 pts)</option>
+          <option value="conf">§1.5 · Conference Paper (1 pt)</option>
+          <option value="abs">§1.6 · Abstract (0.5 pts)</option>
+          <option value="book">§1.7 · Book (3 pts)</option>
+          <option value="chapter">§1.8 · Book Chapter (2 pts)</option>
+        </select>
+      </div>
+      <div class="field"><label>1st / Corresponding author?</label>
+        <button id="man_corr_btn" class="toggle-corr" onclick="manToggleCorr()" style="margin-top:4px">Co-author</button>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+      <button class="sm-btn accent" onclick="addManual()">+ Add Paper</button>
+      <span id="manMsg" class="load-msg" style="margin:0"></span>
+    </div>
+  </div>
+
+  <!-- §1 Other Items -->
+  <div class="divider">§1 — Other Items</div>
+  <div class="field"><label>1.9. Member/Editor — Indexed publication (4 pts)</label><div class="item-list" id="l_edit_i"></div><button class="add-btn" onclick="addItem('l_edit_i',4)">+ Add</button></div>
+  <div class="field"><label>1.10. Member/Editor — Non-indexed publication (2 pts)</label><div class="item-list" id="l_edit_n"></div><button class="add-btn" onclick="addItem('l_edit_n',2)">+ Add</button></div>
+  <div class="field"><label>1.11. Reviewer — Indexed journals (1 pt, max 4)</label><div class="item-list" id="l_rev_i"></div><button class="add-btn" onclick="addItem('l_rev_i',1)">+ Add</button></div>
+  <div class="field"><label>1.12. Reviewer — Non-indexed journals (0.5 pt, max 2)</label><div class="item-list" id="l_rev_n"></div><button class="add-btn" onclick="addItem('l_rev_n',0.5)">+ Add</button></div>
+  <div class="field"><label>1.13. International Research Award (6 pts)</label><div class="item-list" id="l_aw_i"></div><button class="add-btn" onclick="addItem('l_aw_i',6)">+ Add</button></div>
+  <div class="field"><label>1.14. National Research Award (4 pts)</label><div class="item-list" id="l_aw_n"></div><button class="add-btn" onclick="addItem('l_aw_n',4)">+ Add</button></div>
+  <div class="field"><label>1.15. University/Institutional Research Award (2 pts, max 6)</label><div class="item-list" id="l_aw_u"></div><button class="add-btn" onclick="addItem('l_aw_u',2)">+ Add</button></div>
+  <div class="field"><label>1.16. International Research Grant (4 pts)</label><div class="item-list" id="l_gr_i"></div><button class="add-btn" onclick="addItem('l_gr_i',4)">+ Add</button></div>
+  <div class="field"><label>1.17. National Research Grant (3 pts)</label><div class="item-list" id="l_gr_n"></div><button class="add-btn" onclick="addItem('l_gr_n',3)">+ Add</button></div>
+  <div class="field"><label>1.18. University/Institutional Research Grants (2 pts)</label><div class="item-list" id="l_gr_u"></div><button class="add-btn" onclick="addItem('l_gr_u',2)">+ Add</button></div>
+  <div class="field"><label>1.19. Supervision — Ph.D. Degrees (4 pts)</label><div class="item-list" id="l_phd"></div><button class="add-btn" onclick="addItem('l_phd',4)">+ Add</button></div>
+  <div class="field"><label>1.20. Supervision — M.Phil. Degrees (2 pts)</label><div class="item-list" id="l_mphil"></div><button class="add-btn" onclick="addItem('l_mphil',2)">+ Add</button></div>
+  <div class="field"><label>1.21. Supervision — MSc. Degrees (1 pt)</label><div class="item-list" id="l_msc"></div><button class="add-btn" onclick="addItem('l_msc',1)">+ Add</button></div>
+  <div class="field"><label>1.22. National or International Patent (5 pts, max 10)</label><div class="item-list" id="l_pat"></div><button class="add-btn" onclick="addItem('l_pat',5)">+ Add</button></div>
+
+  <!-- §2 Outreach -->
+  <div class="divider">§2 — Outreach (min 20, max 45)</div>
+  <div class="field"><label>2.1. Main coordinator/organizer — workshops/conferences (3 pts, intl ×1.5, max 9)</label><div class="item-list" id="l_coord"></div><button class="add-btn" onclick="addItem('l_coord',3)">+ Add</button></div>
+  <div class="field"><label>2.2. Other organizing positions — workshops/conferences (2 pts, intl ×1.5, max 6)</label><div class="item-list" id="l_org"></div><button class="add-btn" onclick="addItem('l_org',2)">+ Add</button></div>
+  <div class="field"><label>2.3. Session chair in conferences/symposium (0.5 pt, intl ×1.5, max 5)</label><div class="item-list" id="l_chair"></div><button class="add-btn" onclick="addItem('l_chair',0.5)">+ Add</button></div>
+  <div class="field"><label>2.4. Newsletter/scientific magazine articles (0.5 pt, max 3)</label><div class="item-list" id="l_news"></div><button class="add-btn" onclick="addItem('l_news',0.5)">+ Add</button></div>
+  <div class="field"><label>2.5. Resource person in workshops/conferences (1 pt, max 5)</label><div class="item-list" id="l_res"></div><button class="add-btn" onclick="addItem('l_res',1)">+ Add</button></div>
+  <div class="field"><label>2.6. Professional/community activities to popularize science (1 pt, max 5)</label><div class="item-list" id="l_comm"></div><button class="add-btn" onclick="addItem('l_comm',1)">+ Add</button></div>
+  <div class="field"><label>2.7. Active membership in professional bodies (1 pt, max 5)</label><div class="item-list" id="l_memb"></div><button class="add-btn" onclick="addItem('l_memb',1)">+ Add</button></div>
+
+  <!-- UGC Tier -->
+  <div class="ugc-box">
+    <div class="field" style="margin-bottom:6px"><label>§2.8 Google Scholar H-Index</label>
+      <input type="number" id="gs_h" min="0" value="" placeholder="First select field above" disabled style="opacity:.5" oninput="sl();calcUGCTier()">
+    </div>
+    <div class="field" style="margin-bottom:0"><label>UGC Research Performance Tier (auto-calculated)
+      <a class="ugc-link" href="https://www.ugc.ac.lk/attachments/2015_Comm%20Circular%205_2018.pdf" target="_blank">[Circular 05/2018 ↗]</a>
+    </label>
+      <input type="text" id="ugc_tier_display" readonly style="color:var(--accent);font-weight:600;background:var(--accent-soft);cursor:default">
+      <input type="hidden" id="ugc_tier" value="0">
+    </div>
+    <div class="ugc-tier-info" id="ugcTierInfo">Select field and enter h-index to auto-calculate tier</div>
+  </div>
+
+  <!-- §3 & §4 -->
+  <div class="divider">§3 — National (max 10)</div>
+  <div class="field"><label>3.1. National level policy development (3 pts)</label><div class="item-list" id="l_nat_p"></div><button class="add-btn" onclick="addItem('l_nat_p',3)">+ Add</button></div>
+  <div class="field"><label>3.2. Member of national committee (2 pts)</label><div class="item-list" id="l_nat_c"></div><button class="add-btn" onclick="addItem('l_nat_c',2)">+ Add</button></div>
+  <div class="divider">§4 — International (max 10)</div>
+  <div class="field"><label>4.1. International level policy development (4 pts)</label><div class="item-list" id="l_int_p"></div><button class="add-btn" onclick="addItem('l_int_p',4)">+ Add</button></div>
+  <div class="field"><label>4.2. Member of international committee (3 pts)</label><div class="item-list" id="l_int_c"></div><button class="add-btn" onclick="addItem('l_int_c',3)">+ Add</button></div>
+
+  <!-- Score panel -->
+  <div class="score-panel">
+    <div class="score-row"><span>§1.1 Q1/Q2</span><span id="sp_q12">0</span></div>
+    <div class="score-row"><span>§1.2 Q3/Q4</span><span id="sp_q34">0</span></div>
+    <div class="score-row"><span>§1.3 Other indexed</span><span id="sp_oi">0</span></div>
+    <div class="score-row"><span>§1.4 Non-indexed</span><span id="sp_ni">0</span></div>
+    <div class="score-row"><span>§1.5 Conference</span><span id="sp_cf">0</span></div>
+    <div class="score-row"><span>§1.6–7 Book/chapter</span><span id="sp_bk">0</span></div>
+    <div class="score-row"><span>§1 Other</span><span id="sp_o1">0</span></div>
+    <hr class="score-sep">
+    <div class="score-row score-tot"><span>Section 1</span><span id="sp_s1">0</span></div>
+    <div class="score-row"><span>Section 2</span><span id="sp_s2">0</span></div>
+    <div class="score-row"><span>Section 3</span><span id="sp_s3">0</span></div>
+    <div class="score-row"><span>Section 4</span><span id="sp_s4">0</span></div>
+    <hr class="score-sep">
+    <div class="score-row score-tot" style="font-size:.92rem"><span>TOTAL</span><span id="sp_tot">0</span></div>
+    <span class="elig elig-warn" id="eligBadge">Enter data</span>
+    <div class="prog-wrap">
+      <div class="prog-item"><div class="prog-label"><span>§1 (min 50)</span><span id="pg1_lbl">0/50</span></div><div class="prog-bar"><div class="prog-fill warn" id="pg1_fill" style="width:0%"></div></div></div>
+      <div class="prog-item"><div class="prog-label"><span>§2 (min 20)</span><span id="pg2_lbl">0/20</span></div><div class="prog-bar"><div class="prog-fill warn" id="pg2_fill" style="width:0%"></div></div></div>
+      <div class="prog-item"><div class="prog-label"><span>Total (min 70)</span><span id="pgt_lbl">0/70</span></div><div class="prog-bar"><div class="prog-fill warn" id="pgt_fill" style="width:0%"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <!-- Print cover page -->
+  <div class="print-cover" id="printCover"></div>
+
+  <div class="page-hdr no-print">
+    <div class="page-hdr-left">
+      <h1 id="mainTitle">YSF Report Generator</h1>
+      <p id="mainSub">Fill in the sidebar · Fetch publications · Print/Save PDF</p>
+    </div>
+    <div class="hdr-btns">
+      <button class="hdr-btn" onclick="collapseAll()">Collapse All</button>
+      <button class="hdr-btn" onclick="expandAll()">Expand All</button>
+      <button class="hdr-btn print" onclick="renderAll();window.print()">🖨️ Print / PDF</button>
+    </div>
+  </div>
+
+  <div class="profile-card" id="profileCard">
+    <div class="profile-name" id="profileName"></div>
+    <div class="profile-stats" id="profileStats"></div>
+  </div>
+
+  <div class="val-bar" id="valBar"></div>
+
+  <div class="tiles" id="tilesRow">
+    <div class="tile" id="t_s1"><div class="tile-v" id="tv_s1">0</div><div class="tile-l">Section 1</div><div class="tile-m">min 50</div></div>
+    <div class="tile" id="t_s2"><div class="tile-v" id="tv_s2">0</div><div class="tile-l">Section 2</div><div class="tile-m">min 20·max 45</div></div>
+    <div class="tile" id="t_s3"><div class="tile-v" id="tv_s3">0</div><div class="tile-l">Section 3</div><div class="tile-m">max 10</div></div>
+    <div class="tile" id="t_s4"><div class="tile-v" id="tv_s4">0</div><div class="tile-l">Section 4</div><div class="tile-m">max 10</div></div>
+    <div class="tile t-accent"><div class="tile-v" id="tv_tot">0</div><div class="tile-l"><strong>Total</strong></div><div class="tile-m">min 70</div></div>
+  </div>
+
+  <div id="pubSections">
+    <div class="sec-main-hdr no-print" id="sec1Hdr" style="display:none;font-size:.82rem;font-weight:700;color:#fff;background:var(--accent);padding:7px 14px;border-radius:8px 8px 0 0;margin-bottom:0;letter-spacing:.02em">§1 — RESEARCH &amp; DEVELOPMENT</div>
+    <div id="pubCards"></div>
+    <div id="sec1ManCards"></div>
+  </div>
+  <div id="manualSections"></div>
+
+  <!-- Referees -->
+  <div class="manual-sec" id="refSec" style="display:none">
+    <div class="msec-hdr" onclick="toggleMS(this)">
+      <div style="display:flex;align-items:center;gap:7px"><span class="pts-chip" style="background:var(--surface2);color:var(--fg2)">Required</span><div class="msec-title">Referee Details</div></div>
+      <span class="chev">▼</span>
+    </div>
+    <div class="msec-body open">
+      <div class="referee-grid">
+        <div class="ref-card"><div class="ref-title">Referee 1</div>
+          <div class="ref-field"><label>Name</label><input type="text" id="r1_name" placeholder="Referee full name" oninput="sl()"></div>
+          <div class="ref-field"><label>Designation</label><input type="text" id="r1_desig" placeholder="e.g. Professor" oninput="sl()"></div>
+          <div class="ref-field"><label>Institution</label><input type="text" id="r1_inst" placeholder="Institution name" oninput="sl()"></div>
+          <div class="ref-field"><label>Contact No.</label><input type="text" id="r1_tel" placeholder="077xxxxxxx" oninput="sl()"></div>
+          <div class="ref-field"><label>Email</label><input type="text" id="r1_email" placeholder="referee@institution.lk" oninput="sl()"></div>
+        </div>
+        <div class="ref-card"><div class="ref-title">Referee 2</div>
+          <div class="ref-field"><label>Name</label><input type="text" id="r2_name" placeholder="Referee full name" oninput="sl()"></div>
+          <div class="ref-field"><label>Designation</label><input type="text" id="r2_desig" placeholder="e.g. Senior Lecturer" oninput="sl()"></div>
+          <div class="ref-field"><label>Institution</label><input type="text" id="r2_inst" placeholder="Institution name" oninput="sl()"></div>
+          <div class="ref-field"><label>Contact No.</label><input type="text" id="r2_tel" placeholder="077xxxxxxx" oninput="sl()"></div>
+          <div class="ref-field"><label>Email</label><input type="text" id="r2_email" placeholder="referee2@institution.lk" oninput="sl()"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evidence file list -->
+  <div class="manual-sec" id="evSec" style="display:none">
+    <div class="msec-hdr" onclick="toggleMS(this)">
+      <div style="display:flex;align-items:center;gap:7px"><span class="pts-chip" style="background:var(--surface2);color:var(--fg2)">Evidence</span><div class="msec-title">Evidence File Naming Guide</div></div>
+      <span class="chev">▼</span>
+    </div>
+    <div class="msec-body open">
+      <div class="ev-list-wrap">
+        <p style="font-size:.76rem;color:var(--fg2);margin-bottom:6px">Rename your evidence files to these names before submission:</p>
+        <pre id="evList">No papers yet</pre>
+        <button class="copy-ev-btn" onclick="copyEvList()">📋 Copy list</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checklist -->
+  <div class="manual-sec" id="chkSec" style="display:none">
+    <div class="msec-hdr" onclick="toggleMS(this)">
+      <div style="display:flex;align-items:center;gap:7px"><span class="pts-chip" style="background:var(--surface2);color:var(--fg2)">Pre-submit</span><div class="msec-title">Application Checklist</div></div>
+      <span class="chev">▼</span>
+    </div>
+    <div class="msec-body open">
+      <div class="checklist" id="checklist">
+        <div class="check-item" id="chk0"><input type="checkbox" id="c0" onchange="updateChecklist()"><label for="c0">Self-evaluation form completed</label></div>
+        <div class="check-item" id="chk1"><input type="checkbox" id="c1" onchange="updateChecklist()"><label for="c1">Research summary written (max 300 words)</label></div>
+        <div class="check-item" id="chk2"><input type="checkbox" id="c2" onchange="updateChecklist()"><label for="c2">Evidence files renamed using naming guide</label></div>
+        <div class="check-item" id="chk3"><input type="checkbox" id="c3" onchange="updateChecklist()"><label for="c3">Referee 1 contact details added</label></div>
+        <div class="check-item" id="chk4"><input type="checkbox" id="c4" onchange="updateChecklist()"><label for="c4">Referee 2 contact details added</label></div>
+        <div class="check-item" id="chk5"><input type="checkbox" id="c5" onchange="updateChecklist()"><label for="c5">Supporting documents properly numbered</label></div>
+        <div class="check-item" id="chk6"><input type="checkbox" id="c6" onchange="updateChecklist()"><label for="c6">Section 1 score ≥ 50 points</label></div>
+        <div class="check-item" id="chk7"><input type="checkbox" id="c7" onchange="updateChecklist()"><label for="c7">Section 2 score ≥ 20 points</label></div>
+        <div class="check-item" id="chk8"><input type="checkbox" id="c8" onchange="updateChecklist()"><label for="c8">Total score ≥ 70 points</label></div>
+        <div class="check-item" id="chk9"><input type="checkbox" id="c9" onchange="updateChecklist()"><label for="c9">Application submitted via registered post</label></div>
+        <div class="check-item" id="chk10"><input type="checkbox" id="c10" onchange="updateChecklist()"><label for="c10">Online submission completed (forms.gle link)</label></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── UGC Tier Data (Circular 05/2018) ─────────────────
+// Thresholds per field: [Tier2_min, Tier3_min, Tier4_min, Tier4star_min]
+// UGC Circular 05/2018 — exact h-index thresholds [Tier2, Tier3, Tier4, Tier4*]
+const UGC_TIERS = {
+  // Group 1: Indigenous Medicine, Medical & Dental Sciences [2,7,13,20]
+  'g1_medical':        [2, 7, 13, 20],
+  // Group 2: Pure Sciences except Mathematics [2,6,11,17]
+  'g2_purescience':    [2, 6, 11, 17],
+  // Group 3: Agriculture, Allied Health, Applied Sciences, Engineering, IT, QS, Veterinary [2,5,9,14]
+  'g3_engineering':    [2, 5,  9, 14],
+  // Group 4: Architecture, Arts, Design, Fine Arts, Humanities, SS, Law, Management, Maths, TCP [1,4,7,11]
+  'g4_humanities':     [1, 4,  7, 11],
+};
+
+function calcUGCTier() {
+  const field = val('f_field');
+  const h = parseInt(val('gs_h')) || 0;
+  const thresholds = UGC_TIERS[field];
+  const sel = document.getElementById('ugc_tier');
+  const info = document.getElementById('ugcTierInfo');
+
+  const gsEl = document.getElementById('gs_h');
+  if (!field || !thresholds) {
+    info.textContent = 'Select field above to enable h-index input';
+    gsEl.disabled = true; gsEl.style.opacity = '.5';
+    document.getElementById('ugc_tier_display').value = '';
+    document.getElementById('ugc_tier').value = '0';
+    return;
+  }
+  // Enable h-index input once field is selected
+  gsEl.disabled = false; gsEl.style.opacity = '1';
+  gsEl.placeholder = 'Enter Google Scholar h-index';
+
+  const [t2, t3, t4, t4s] = thresholds;
+  let tier = 0, tierName = 'Tier 1 (0 pts)';
+  if (h >= t4s)      { tier = 10; tierName = `Tier 4* (10 pts) — h ≥ ${t4s}`; }
+  else if (h >= t4)  { tier = 8;  tierName = `Tier 4 (8 pts) — h ≥ ${t4}`; }
+  else if (h >= t3)  { tier = 6;  tierName = `Tier 3 (6 pts) — h ≥ ${t3}`; }
+  else if (h >= t2)  { tier = 4;  tierName = `Tier 2 (4 pts) — h ≥ ${t2}`; }
+  else               { tier = 0;  tierName = `Tier 1 (0 pts) — h < ${t2}`; }
+
+  document.getElementById('ugc_tier').value = String(tier);
+  document.getElementById('ugc_tier_display').value = tierName;
+  info.innerHTML = `<strong>Auto-calculated: ${tierName}</strong><br>
+    ${field} thresholds: T2≥${t2} · T3≥${t3} · T4≥${t4} · T4*≥${t4s}<br>
+    Your h-index: <strong>${h}</strong> (Google Scholar) ·
+    <a href="https://www.ugc.ac.lk/attachments/2015_Comm%20Circular%205_2018.pdf" target="_blank" style="color:var(--accent)">View circular ↗</a>`;
+  recalc();
+}
+
+// ── Constants ─────────────────────────────────────────
+const MAILTO = 'research@sliit.lk';
+const SECTIONS = [
+  {id:'q12',    label:'§1.1 · Q1/Q2 Journals',         base:6,   mult:2, maxPts:null, note:'Q1/Q2 · 1st/Corr ×2 = 12 pts'},
+  {id:'q34',    label:'§1.2 · Q3/Q4 Journals',         base:4,   mult:2, maxPts:null, note:'Q3/Q4 · 1st/Corr ×2 = 8 pts'},
+  {id:'oi',     label:'§1.3 · Other Indexed',           base:2,   mult:2, maxPts:null, note:'Indexed · 1st/Corr ×2 = 4 pts'},
+  {id:'ni',     label:'§1.4 · Non-indexed',             base:1.5, mult:1, maxPts:15,   note:'1.5 pts · 1st/Corr ×2 = 3 pts · Max 15'},
+  {id:'conf',   label:'§1.5 · Conference Papers',       base:1,   mult:2, maxPts:10,   note:'1 pt · 1st/Corr ×2 = 2 pts · Max 10'},
+  {id:'abs',    label:'§1.6 · Conference Abstracts',    base:0.5, mult:2, maxPts:10,   note:'0.5 pts · 1st/Corr ×2 = 1 pt · Max 10'},
+  {id:'book',   label:'§1.7 · Books',                  base:3,   mult:2, maxPts:null, note:'3 pts · 1st/Corr ×2 = 6 pts'},
+  {id:'chapter',label:'§1.8 · Book Chapters',          base:2,   mult:2, maxPts:null, note:'2 pts · 1st/Corr ×2 = 4 pts'},
+];
+
+let scimagoData = null, allWorks = [], authorId = '', dragSrcIdx = null;
+
+// ── Helpers ───────────────────────────────────────────
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const val = id => document.getElementById(id)?.value||'';
+const setText = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+const cap = (v,mx) => mx!=null?Math.min(v,mx):v;
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const sl = () => {}; // no-op: data saved via JSON export only
+
+function parseDMY(s) {
+  const [d,m,y]=(s||'').split('/').map(Number);
+  return (!d||!m||!y)?null:new Date(y,m-1,d);
+}
+function inRange(year) {
+  const f=parseDMY(val('d_from')), t=parseDMY(val('d_to'));
+  if(!f||!t) return true;
+  return year>=f.getFullYear()&&year<=t.getFullYear();
+}
+function calcAge() {
+  const dob=parseDMY(val('f_dob')), deadline=parseDMY(val('d_to'));
+  if(!dob||!deadline) { document.getElementById('f_age').value=''; return; }
+  let age=deadline.getFullYear()-dob.getFullYear();
+  const m=deadline.getMonth()-dob.getMonth();
+  if(m<0||(m===0&&deadline.getDate()<dob.getDate())) age--;
+  document.getElementById('f_age').value=age+' years';
+}
+function fmt(authors, work) {
+  if(work?._manual && work?._authors_str) return work._authors_str;
+  const list=(authors||[]).slice(0,4).map(a=>a.author?.display_name||'').filter(Boolean);
+  return list.join(', ')+(authors?.length>4?' et al.':'');
+}
+function evFilename(secId,idx,work) {
+  const secMap={q12:'1.1',q34:'1.2',oi:'1.3',ni:'1.4',conf:'1.5',abs:'1.6',book:'1.7',chapter:'1.8'};
+  const journal=(work.primary_location?.source?.display_name||'Unknown')
+    .replace(/[^a-zA-Z0-9]+/g,'_').replace(/_+$/,'').substring(0,18);
+  return `${secMap[secId]||secId}_${String(idx).padStart(2,'0')}_${journal}_${work.publication_year||'0000'}.pdf`;
+}
+function classifyType(w) {
+  const t=(w.type||'').toLowerCase();
+  if(t==='journal-article'||t==='article') return 'journal';
+  if(t==='proceedings-article'||t==='conference-paper') return 'conference';
+  if(t==='book') return 'book';
+  if(t==='book-chapter') return 'chapter';
+  return 'other';
+}
+
+// ── Scimago ───────────────────────────────────────────
+async function loadScimago() {
+  if(scimagoData) return;
+  try {
+    const r=await fetch('scimago_issn.json');
+    scimagoData = r.ok ? await r.json() : {};
+  } catch { scimagoData={}; }
+}
+function safeIssns(work) {
+  const raw = work.primary_location?.source?.issn;
+  const arr = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+  return arr.filter(x=>x&&typeof x==='string').map(x=>x.trim().toUpperCase());
+}
+function getQ(work) {
+  for(const issn of safeIssns(work)) {
+    const q=scimagoData?.[issn.replace('-','')];
+    if(q) return q;
+  }
+  return null;
+}
+function isIndexed(work) {
+  // Indexed if Scimago has ISSN match OR OpenAlex source is known journal
+  const issns = safeIssns(work);
+  for(const issn of issns) { if(scimagoData?.[issn.replace('-','')]) return true; }
+  // Also check if source type is journal and has ISSN (likely indexed)
+  const src = work.primary_location?.source;
+  return !!(src && issns.length && src.type==='journal');
+}
+
+function getSectionFor(work) {
+  const type=classifyType(work), q=getQ(work);
+  if(type==='journal') {
+    if(q==='Q1'||q==='Q2') return 'q12';
+    if(q==='Q3'||q==='Q4') return 'q34';
+    // No Scimago match — check if indexed
+    return isIndexed(work) ? 'oi' : 'ni';
+  }
+  if(type==='conference') return 'conf';
+  if(type==='book') return 'book';
+  if(type==='chapter') return 'chapter';
+  // Unknown type — default to §1.4 non-indexed, user can move
+  return 'ni';
+}
+
+// ── Venue links ───────────────────────────────────────
+function venueLinks(work, secId) {
+  if(!work) return '';
+  const src = work?.primary_location?.source;
+  if(!src) return '';
+  const issns = safeIssns(work);
+  const homepage = src.homepage_url||'';
+  const links = [];
+  const isConf = secId==='conf';
+  const doi = (work.doi||'').replace('https://doi.org/','');
+  if(isConf) {
+    // Conference: proceedings link only (DOI ලෙස title column ලෙස show)
+    if(homepage) links.push(`<a href="${esc(homepage)}" target="_blank">📋 Proceedings</a>`);
+  } else {
+    // Journal: SJR + WoS (homepage ලෙස venue name ලෙසම link කළා)
+    if(issns.length) {
+      links.push(`<a href="https://www.scimagojr.com/journalsearch.php?q=${issns[0]}" target="_blank">📊 SJR</a>`);
+      links.push(`<a href="https://mjl.clarivate.com/search-results?issn=${issns[0].replace('-','')}" target="_blank">🔬 WoS</a>`);
+    } else if(doi) {
+      // Non-indexed — no ISSN, show DOI link
+      links.push(`<a href="https://doi.org/${doi}" target="_blank">↗ DOI</a>`);
+    }
+  }
+  return links.length?`<div class="td-links">${links.join('')}</div>`:'';
+}
+
+// ── Corresponding author detection ────────────────────
+async function detectCorresponding(work, aid) {
+  const auth=(work.authorships||[]).find(a=>{
+    const id=(a.author?.id||'').replace('https://openalex.org/','');
+    return id===aid||id===aid.replace(/^A/i,'A');
+  });
+  if(auth?.author_position==='first') return true;
+  if(auth?.is_corresponding===true) return true;
+  const doi=(work.doi||'').replace('https://doi.org/','');
+  if(!doi) return false;
+  try {
+    const surname=(val('f_name').trim().split(' ').pop()||'').toLowerCase();
+    if(!surname) return false;
+    const r=await fetch(`https://api.crossref.org/works/${doi}?mailto=${MAILTO}`);
+    const d=await r.json();
+    const me=(d?.message?.author||[]).find(a=>{
+      const fam=(a.family||'').toLowerCase();
+      return fam===surname||fam.includes(surname)||surname.includes(fam);
+    });
+    if(me?.sequence==='first') return true;
+    if(me?.corresponding==='true'||me?.corresponding===true) return true;
+  } catch {}
+  return false;
+}
+
+// ── Fetch ─────────────────────────────────────────────
+async function fetchAll() {
+  const id=val('f_oaid').trim();
+  if(!id){ alert('OpenAlex Author ID enter කරන්න'); return; }
+  authorId=id.startsWith('A')||id.startsWith('a')?id:'A'+id;
+  document.getElementById('fetchBtn').disabled=true;
+  setMsg('Scimago loading…'); await loadScimago();
+  setMsg('Author profile…');
+  try {
+    const ar=await fetch(`https://api.openalex.org/authors/${authorId}?mailto=${MAILTO}`);
+    const a=await ar.json();
+    if(!a.id) throw new Error('Author not found');
+    document.getElementById('profileName').textContent=a.display_name;
+    document.getElementById('profileStats').innerHTML=
+      `<span class="pstat" style="color:var(--fg3);font-size:.75rem">Data fetched from OpenAlex</span>`;
+    document.getElementById('profileCard').style.display='block';
+    document.getElementById('tilesRow').style.display='grid';
+    ['refSec','evSec','chkSec'].forEach(id=>document.getElementById(id).style.display='block');
+    if(!val('f_name')) document.getElementById('f_name').value=a.display_name;
+    updateHeader();
+    // h-index ලෙස manual only — OpenAlex ලෙස auto-fill නෑ
+    // Show print button after fetch
+    document.getElementById('printBtn').style.display='block';
+
+    setMsg('Fetching publications…');
+    let raw=[],page=1;
+    while(true){
+      const wr=await fetch(`https://api.openalex.org/works?filter=author.id:${authorId}&per-page=50&page=${page}&mailto=${MAILTO}`);
+      const wd=await wr.json();
+      const res=wd.results||[];
+      raw=raw.concat(res);
+      if(res.length<50) break;
+      page++;
+    }
+    const inPeriod=raw.filter(w=>inRange(w.publication_year));
+    setMsg(`${inPeriod.length} papers in period · checking authorship…`);
+    allWorks=[];
+    let skipped=0;
+    for(let i=0;i<inPeriod.length;i++){
+      const w=inPeriod[i];
+      setMsg(`Checking ${i+1}/${inPeriod.length}: ${(w.display_name||'').substring(0,35)}…`);
+      try{
+        const isFirst=await detectCorresponding(w,authorId);
+        const sec=getSectionFor(w);
+        if(sec) allWorks.push({work:w,section:sec,isFirst,pgNum:'',notes:''});
+      }catch(perr){
+        console.warn(`Skipping paper ${i+1} (${w.id}):`,perr.message);
+        skipped++;
+      }
+      await sleep(100);
+    }
+    if(skipped) setMsg(`⚠️ ${allWorks.length} papers classified (${skipped} skipped due to data issues)`);
+    else setMsg(`✅ ${allWorks.length} papers classified`);
+    setMsg(`✅ ${allWorks.length} papers classified`);
+    renderAll();
+  } catch(e) { setMsg('❌ '+e.message,true); }
+  document.getElementById('fetchBtn').disabled=false;
+}
+
+// ── Add by DOI ────────────────────────────────────────
+async function addByDoi(){
+  const raw=val('doi_input').trim().replace(/^https?:\/\/doi\.org\//,'');
+  if(!raw) return;
+  const el=document.getElementById('doiMsg');
+  el.textContent='Fetching…'; el.className='load-msg';
+  const dup=allWorks.find(e=>(e.work.doi||'').includes(raw));
+  if(dup){ el.textContent='⚠️ Already added'; el.className='load-msg err'; return; }
+  try {
+    await loadScimago();
+    const r=await fetch(`https://api.openalex.org/works/doi:${raw}?mailto=${MAILTO}`);
+    if(!r.ok) throw new Error('Not found in OpenAlex (HTTP '+r.status+')');
+    const w=await r.json();
+    if(!w.id) throw new Error('Not found in OpenAlex');
+    // Title duplicate check (catches manually-added papers with same title)
+    const wTitleKey=(w.display_name||'').trim().toLowerCase().replace(/\s+/g,' ').slice(0,40);
+    const titleDup=allWorks.find(e=>(e.work.display_name||'').trim().toLowerCase().replace(/\s+/g,' ').slice(0,40)===wTitleKey);
+    if(titleDup && !confirm('A paper with a similar title already exists. Add anyway?')) return;
+    const sec=getSectionFor(w);
+    const isFirst=await detectCorresponding(w,authorId);
+    allWorks.push({work:w,section:sec,isFirst,pgNum:'',notes:''});
+    document.getElementById('doi_input').value='';
+    el.textContent='✅ Added: '+(w.display_name||'').substring(0,50);
+    renderAll();
+  } catch(e){ el.textContent='❌ '+e.message; el.className='load-msg err'; }
+}
+
+// ── Render publications ───────────────────────────────
+function renderAll(){
+  // Filter corrupt entries
+  allWorks=allWorks.filter(e=>e&&e.work&&e.work.id);
+  const searchQ='';
+  const dois=allWorks.map(e=>e.work.doi||e.work.id);
+  const dupSet=new Set(dois.filter((d,i)=>dois.indexOf(d)!==i));
+  let evLines=[], evIdx=1;
+  let html='';
+
+  // Build a stable index map: entry object → index in allWorks
+  const workIndexMap=new Map(allWorks.map((e,i)=>[e,i]));
+
+  SECTIONS.forEach(sec=>{
+    const entries=allWorks.filter(e=>e.section===sec.id);
+    if(!entries.length) return;
+    let raw=0;
+    entries.forEach(e=>{ raw+=e.isFirst?sec.base*sec.mult:sec.base; });
+    const total=sec.maxPts?Math.min(raw,sec.maxPts):raw;
+    const capped=sec.maxPts&&raw>sec.maxPts;
+    const moveOpts=SECTIONS.filter(s=>s.id!==sec.id).map(s=>`<option value="${s.id}">${s.label.split('·')[1]?.trim()||s.id}</option>`).join('');
+
+    // Per-paper cap tracking
+    let accumulated=0;
+    const rows=entries.map((e,i)=>{
+      const w=e.work, q=getQ(w);
+      const rawPts=e.isFirst?sec.base*sec.mult:sec.base;
+      // Per-paper cap: if adding this paper exceeds maxPts, pts=0
+      let pts=rawPts;
+      if(sec.maxPts){
+        if(accumulated>=sec.maxPts) pts=0;
+        else if(accumulated+rawPts>sec.maxPts) pts=sec.maxPts-accumulated;
+        accumulated+=pts;
+      } else { accumulated+=pts; }
+      const doi=(w.doi||'').replace('https://doi.org/','');
+      const venue=w.primary_location?.source?.display_name||'—';
+      const qBadge=q?`<span class="badge b${q.toLowerCase()}">${q}</span>`:`<span class="badge bni">—</span>`;
+      const isDup=dupSet.has(w.doi||w.id);
+      const idx=workIndexMap.get(e)??-1;
+      if(idx<0) return ''; // safety: skip orphaned entries
+      const evFile=evFilename(sec.id,evIdx,w);
+      evLines.push(`${evFile}  ← ${(w.display_name||'').substring(0,60)}`);
+      evIdx++;
+      const overCap=sec.maxPts&&pts===0;
+      const hidden=false;
+
+      return `<tr class="${isDup?'dup-row':''}${hidden?' hidden-row':''}" draggable="true"
+        ondragstart="dragSrcIdx=${idx};event.dataTransfer.effectAllowed='move'"
+        ondragend="clearDragOver()">
+        <td class="drag-handle" title="Drag to reorder">⠿</td>
+        <td>${i+1}${isDup?' <span style="color:var(--red)">⚠️</span>':''}${overCap?' <span style="color:var(--fg3)" title="Over cap — drag up to count">0</span>':''}</td>
+        <td class="td-pts" style="${overCap?'color:var(--fg3);text-decoration:line-through':''}">${overCap?'0 (cap)':pts}</td>
+        <td>
+          <span style="font-weight:600;font-size:.75rem">${esc(venue)}</span>
+          <small style="color:var(--fg3);display:block">${w.publication_year||''}</small>
+          ${venueLinks(w,sec.id)}
+        </td>
+        <td class="td-t">
+          <input class="td-edit" value="${esc(w.display_name||'')}" oninput="allWorks[${idx}].work.display_name=this.value;sl()">
+          ${doi?`<a href="https://doi.org/${doi}" target="_blank" style="color:var(--accent);font-size:.65rem">↗ ${doi}</a>`:''}
+          <span class="evname">📄 ${evFile}</span>
+        </td>
+        <td class="td-a">${esc(fmt(w.authorships,w))}</td>
+        <td>${qBadge}</td>
+        <td><button class="toggle-corr ${e.isFirst?'is-first':''}" onclick="allWorks[${idx}].isFirst=!allWorks[${idx}].isFirst;sl();renderAll()">${e.isFirst?'✓ 1st/Corr':'Co-author'}</button></td>
+        <td>${sec.id==='conf'||sec.id==='abs'?`<label title="Mark as Abstract (§1.6)" style="font-size:.7rem;cursor:pointer;white-space:nowrap"><input type="checkbox" ${sec.id==='abs'?'checked':''} onchange="allWorks[${idx}].section=this.checked?'abs':'conf';sl();renderAll()"> Abs?</label>`:''}
+        <select class="move-sel" onchange="moveWork(${idx},this.value);this.value=''" title="Move"><option value="">→</option>${moveOpts}</select></td>
+        <td><button class="del-btn" onclick="allWorks.splice(${idx},1);sl();renderAll()">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    html+=`<div class="pub-sec" id="sec_${sec.id}"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="dropInSec(event,'${sec.id}')">
+      <div class="psec-hdr" onclick="toggleSec(this)">
+        <div class="psec-l">
+          <span class="pts-chip">${total} pts${capped?' (capped)':''}</span>
+          <div><div class="psec-title">${sec.label}</div><div class="psec-sub">${sec.note}</div></div>
+        </div>
+        ${capped?`<span class="warn-chip">⚠️ Max ${sec.maxPts}</span>`:''}
+        <span class="chev">▼</span>
+      </div>
+      <div class="twrap open">
+        <table>
+          <tr><th>⠿</th><th>#</th><th>Pts</th><th>Venue &amp; Links</th><th>Title / Evidence file</th><th>Authors</th><th>Q</th><th>Author role</th><th>Move</th><th></th></tr>
+          ${rows}
+        </table>
+      </div>
+      <div class="psec-foot">${entries.length} papers · <strong>${total} pts</strong></div>
+    </div>`;
+  });
+
+  const pubCards=document.getElementById('pubCards');
+  pubCards.innerHTML=html||'<div class="empty-s">No papers found — fetch or add by DOI</div>';
+  // Show §1 main header only when there are pub cards or manual §1 items
+  const sec1Hdr=document.getElementById('sec1Hdr');
+  if(sec1Hdr) sec1Hdr.style.display=html?'block':'none';
+  document.getElementById('evList').textContent=evLines.length?evLines.join('\n'):'No papers yet';
+  recalc();
+}
+
+function filterPapers(){ renderAll(); }
+
+function moveWork(idx,targetSec){ if(!targetSec) return; allWorks[idx].section=targetSec; sl(); renderAll(); }
+
+function dropInSec(ev,secId){
+  ev.preventDefault();
+  document.querySelectorAll('.pub-sec').forEach(el=>el.classList.remove('drag-over'));
+  if(dragSrcIdx==null) return;
+  allWorks[dragSrcIdx].section=secId;
+  dragSrcIdx=null; sl(); renderAll();
+}
+function clearDragOver(){ document.querySelectorAll('.pub-sec').forEach(el=>el.classList.remove('drag-over')); }
+
+// ── Scoring ───────────────────────────────────────────
+function listTotal(id){
+  let t=0;
+  document.querySelectorAll(`#${id} .item-row`).forEach(r=>{
+    const numIns=[...r.querySelectorAll('input')].filter(i=>i.type==='number');
+    t+=parseFloat(numIns[numIns.length-1]?.value||0);
+  });
+  return t;
+}
+
+function recalc(){
+  const scores={};
+  SECTIONS.forEach(sec=>{
+    let t=0;
+    allWorks.filter(e=>e.section===sec.id).forEach(e=>{ t+=e.isFirst?sec.base*sec.mult:sec.base; });
+    scores[sec.id]=sec.maxPts?Math.min(t,sec.maxPts):t;
+  });
+  const s1pub=Object.values(scores).reduce((a,b)=>a+b,0);
+  const s1oth=cap(listTotal('l_edit_i'))+cap(listTotal('l_edit_n'))+
+    cap(listTotal('l_rev_i'),4)+cap(listTotal('l_rev_n'),2)+
+    listTotal('l_aw_i')+listTotal('l_aw_n')+cap(listTotal('l_aw_u'),6)+
+    listTotal('l_gr_i')+listTotal('l_gr_n')+listTotal('l_gr_u')+
+    listTotal('l_phd')+listTotal('l_mphil')+listTotal('l_msc')+cap(listTotal('l_pat'),10);
+  const sec1=s1pub+s1oth;
+  const s2raw=cap(listTotal('l_coord'),9)+cap(listTotal('l_org'),6)+
+    cap(listTotal('l_chair'),5)+cap(listTotal('l_news'),3)+
+    cap(listTotal('l_res'),5)+cap(listTotal('l_comm'),5)+
+    cap(listTotal('l_memb'),5)+(parseFloat(val('ugc_tier'))||0);
+  const sec2=Math.min(s2raw,45);
+  const sec3=Math.min(listTotal('l_nat_p')+listTotal('l_nat_c'),10);
+  const sec4=Math.min(listTotal('l_int_p')+listTotal('l_int_c'),10);
+  const total=sec1+sec2+sec3+sec4;
+
+  setText('sp_q12',scores.q12);setText('sp_q34',scores.q34);setText('sp_oi',scores.oi);
+  setText('sp_ni',(scores.ni||0).toFixed(1));
+  setText('sp_cf',scores.conf);setText('sp_bk',((scores.book||0)+(scores.chapter||0)).toFixed(1));
+  setText('sp_o1',s1oth.toFixed(1));setText('sp_s1',sec1.toFixed(1));
+  setText('sp_s2',sec2.toFixed(1));setText('sp_s3',sec3.toFixed(1));
+  setText('sp_s4',sec4.toFixed(1));setText('sp_tot',total.toFixed(1));
+
+  setTile('t_s1','tv_s1',sec1,50);setTile('t_s2','tv_s2',sec2,20);
+  setText('tv_s3',sec3.toFixed(1));setText('tv_s4',sec4.toFixed(1));setText('tv_tot',total.toFixed(1));
+
+  const elig=document.getElementById('eligBadge');
+  if(sec1<50)       { elig.className='elig elig-no';   elig.textContent=`❌ §1 insufficient (${sec1.toFixed(1)}/50)`; }
+  else if(sec2<20)  { elig.className='elig elig-no';   elig.textContent=`❌ §2 insufficient (${sec2.toFixed(1)}/20)`; }
+  else if(total<70) { elig.className='elig elig-warn'; elig.textContent=`⚠️ Total below 70 (${total.toFixed(1)})`; }
+  else              { elig.className='elig elig-ok';   elig.textContent=`✅ Eligible — ${total.toFixed(1)} pts`; }
+
+  setProgress('pg1',sec1,50,100);setProgress('pg2',sec2,20,45);setProgress('pgt',total,70,150);
+
+  const warns=[];
+  if((scores.conf||0)>=10&&allWorks.filter(e=>e.section==='conf').length>10) warns.push('§1.5 Conference papers capped at 10 pts');
+  if(listTotal('l_rev_i')>4) warns.push('§1.11 Reviewer (indexed) capped at 4 pts');
+  if(listTotal('l_aw_u')>6) warns.push('§1.15 Uni award capped at 6 pts');
+  if(s2raw>45) warns.push(`§2 capped at 45 pts (raw: ${s2raw.toFixed(1)})`);
+  const vbar=document.getElementById('valBar');
+  if(warns.length){ vbar.style.display='block'; vbar.innerHTML='⚠️ <strong>Warnings:</strong><ul>'+warns.map(w=>`<li>${w}</li>`).join('')+'</ul>'; }
+  else vbar.style.display='none';
+
+  renderManualSections(); updatePrintCover(sec1,sec2,sec3,sec4,total);
+}
+
+function setTile(tid,vid,v,min){ document.getElementById(vid).textContent=v.toFixed(1); document.getElementById(tid).className='tile '+(v>=min?'t-ok':'t-warn'); }
+function setProgress(id,v,min,max){ const pct=Math.min(100,(v/max)*100); document.getElementById(id+'_fill').style.width=pct+'%'; document.getElementById(id+'_fill').className='prog-fill '+(v>=max?'full':v>=min?'ok':'warn'); document.getElementById(id+'_lbl').textContent=v.toFixed(1)+'/'+min; }
+
+// ── Manual sections ───────────────────────────────────
+function getListItems(id){
+  const items=[];
+  document.querySelectorAll(`#${id} .item-row`).forEach(r=>{
+    const ins=r.querySelectorAll('input');
+    const desc=ins[0]?.value?.trim();
+    // pts: last number input (after any checkbox)
+    const numIns=[...ins].filter(i=>i.type==='number');
+    const pts=parseFloat(numIns[numIns.length-1]?.value||0);
+    // extra info: role (select) or intl (checkbox)
+    const sel=r.querySelector('select');
+    const chk=r.querySelector('input[type="checkbox"]');
+    // role: from select text, or from checkbox (supervision: Principal/Other Supervisor)
+    const isSup=['l_phd','l_mphil','l_msc'].includes(id);
+    const isIntlScope=['l_coord','l_org','l_chair'].includes(id);
+    // role: short label from select (strip pts info), or from checkbox
+    const selText=sel?sel.options[sel.selectedIndex]?.text:'';
+    let role=selText.replace(/\s*[\(×].*$/,'').trim(); // strip "(4 pts)" or "×1.5 = ..." suffix
+    let intl=null;
+    if(isSup && chk) role=chk.checked?'Principal Supervisor':'Other Supervisor';
+    if(isIntlScope && chk) intl=chk.checked;
+    if(desc) items.push({desc,pts,role,intl});
+  });
+  return items;
+}
+
+function renderManualSections(){
+  const groups=[
+    {title:'§1 — Other Items', lists:[
+      {id:'l_edit_i',label:'1.9. Member/Editor — Indexed publication²'},
+      {id:'l_edit_n',label:'1.10. Member/Editor — Non-indexed publication²'},
+      {id:'l_rev_i', label:'1.11. Reviewer — Indexed journals (max 4 pts)'},
+      {id:'l_rev_n', label:'1.12. Reviewer — Non-indexed journals (max 2 pts)'},
+      {id:'l_aw_i',  label:'1.13. International Research Award'},
+      {id:'l_aw_n',  label:'1.14. National Research Award'},
+      {id:'l_aw_u',  label:'1.15. University/Institutional Research Award (max 6 pts)'},
+      {id:'l_gr_i',  label:'1.16. International Research Grant'},
+      {id:'l_gr_n',  label:'1.17. National Research Grant'},
+      {id:'l_gr_u',  label:'1.18. University/Institutional Research Grants'},
+      {id:'l_phd',   label:'1.19. Supervision — Ph.D. Degrees³'},
+      {id:'l_mphil', label:'1.20. Supervision — M.Phil. Degrees³'},
+      {id:'l_msc',   label:'1.21. Supervision — MSc. Degrees³'},
+      {id:'l_pat',   label:'1.22. National or International Patent (max 10 pts)'},
+    ]},
+    {title:'§2 — Science Communication & Outreach', lists:[
+      {id:'l_coord', label:'2.1. Main coordinator/organizer of workshops/conferences⁴ (max 9 pts)'},
+      {id:'l_org',   label:'2.2. Other organizing positions in workshops/conferences⁴ (max 6 pts)'},
+      {id:'l_chair', label:'2.3. Session chair in conferences/symposium⁴ (max 5 pts)'},
+      {id:'l_news',  label:'2.4. Newsletter articles/scientific magazine articles (max 3 pts)'},
+      {id:'l_res',   label:'2.5. Resource person in workshops/conferences (max 5 pts)'},
+      {id:'l_comm',  label:'2.6. Professional/community activities to popularize science (max 5 pts)'},
+      {id:'l_memb',  label:'2.7. Active membership in professional bodies (max 5 pts)'},
+      {id:null,      label:'2.8. UGC Research Performance Tier',
+       pts:parseFloat(val('ugc_tier'))||0,
+       desc:(()=>{ try{ const el=document.getElementById('ugc_tier'); const i=el?el.selectedIndex:-1; return (i>=0&&el.options[i])?el.options[i].text:'—'; }catch(e){ return '—'; } })()},
+    ]},
+    {title:'§3 — National Service', lists:[
+      {id:'l_nat_p',label:'3.1. National level policy development⁵'},
+      {id:'l_nat_c',label:'3.2. Member of national committee'},
+    ]},
+    {title:'§4 — International Service', lists:[
+      {id:'l_int_p',label:'4.1. International level policy development⁵'},
+      {id:'l_int_c',label:'4.2. Member of international committee'},
+    ]},
+  ];
+  let html=''; let sec1Html='';
+  groups.forEach(g=>{
+    const isSec1=g.title.startsWith('§1');
+    if(isSec1){
+      // §1 manual items render as individual pub-sec cards (continuation of §1 pub tables)
+      g.lists.forEach(l=>{
+        if(!l.id) return;
+        const items=getListItems(l.id);
+        if(!items.length) return;
+        const subtotal=items.reduce((a,b)=>a+b.pts,0);
+        const hasRole=['l_edit_i','l_edit_n','l_phd','l_mphil','l_msc'].includes(l.id);
+        const hasIntl=['l_coord','l_org','l_chair'].includes(l.id);
+        let tHead=`<tr><th>#</th><th>Pts</th><th>Description</th>`;
+        if(hasRole) tHead+=`<th>Role</th>`;
+        if(hasIntl) tHead+=`<th>Scope</th>`;
+        tHead+=`<th></th></tr>`;
+        let tRows='';
+        const isEditDrop=['l_edit_i','l_edit_n'].includes(l.id);
+        const isSupRole=['l_phd','l_mphil','l_msc'].includes(l.id);
+        items.forEach((item,n)=>{
+          // Role cell: editable select for §1.9/1.10, toggle button for supervision
+          let roleTd='';
+          if(isEditDrop){
+            const base=l.id==='l_edit_i'?4:2;
+            const opts=[
+              {v:base,t:`Member`},
+              {v:(base*1.5).toFixed(1),t:`Assoc. Editor`},
+              {v:base*2,t:`Chief Editor`}
+            ];
+            const selOpts=opts.map(o=>`<option value="${o.v}"${parseFloat(o.v)===parseFloat(item.pts)?'selected':''}>${o.t}</option>`).join('');
+            roleTd=`<td style="padding:0 4px"><select style="font-size:.72rem;border:1px solid var(--border);border-radius:4px;padding:2px 4px;background:var(--surface);color:var(--accent);cursor:pointer"
+              onchange="(function(sel){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){const domSel=rows[${n}].querySelector('select');const numIns=[...rows[${n}].querySelectorAll('input')].filter(i=>i.type==='number');if(domSel)domSel.value=sel.value;if(numIns.length)numIns[numIns.length-1].value=sel.value;sl();recalc();renderManualSections();}})(this)">${selOpts}</select></td>`;
+          } else if(isSupRole){
+            const isPrincipal=(item.role||'').toLowerCase().includes('principal');
+            const fullPts=l.id==='l_phd'?4:l.id==='l_mphil'?2:1;
+            const halfPts=fullPts*0.5;
+            roleTd=`<td style="padding:0 4px">
+              <button onclick="(function(){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){const chk=rows[${n}].querySelector('input[type=checkbox]');if(chk){chk.checked=!chk.checked;const numIns=[...rows[${n}].querySelectorAll('input')].filter(i=>i.type==='number');if(numIns.length)numIns[numIns.length-1].value=chk.checked?${fullPts}:${halfPts};sl();recalc();renderManualSections();}}})()" style="font-size:.72rem;border:1px solid var(--border);border-radius:4px;padding:1px 8px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap">${isPrincipal?'✓ Principal':'Other Sup.'}</button>
+            </td>`;
+          }
+          const intlBase=l.id==='l_coord'?3:l.id==='l_org'?2:0.5;
+          const intlFull=parseFloat((intlBase*1.5).toFixed(2));
+          const intlTd=hasIntl?`<td style="padding:0 4px">
+            <button onclick="(function(){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){const chk=rows[${n}].querySelector('input[type=checkbox]');if(chk){chk.checked=!chk.checked;const numIns=[...rows[${n}].querySelectorAll('input')].filter(i=>i.type==='number');if(numIns.length)numIns[numIns.length-1].value=chk.checked?${intlFull}:${intlBase};sl();recalc();renderManualSections();}}})()" style="font-size:.72rem;border:1px solid var(--border);border-radius:4px;padding:1px 6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap">${item.intl?'🌐 Intl':'🏠 Local'}</button>
+          </td>`:'';
+          tRows+=`<tr>
+            <td style="color:var(--fg3);width:20px">${n+1}</td>
+            <td class="td-pts"><input type="number" value="${item.pts}" min="0" step="0.5" style="width:48px;font-size:.78rem;text-align:center;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--accent);font-weight:700;padding:2px 3px"
+              oninput="(function(el){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){const numIns=[...rows[${n}].querySelectorAll('input')].filter(i=>i.type==='number');if(numIns.length)numIns[numIns.length-1].value=el.value;sl();recalc();renderManualSections();}})(this)"></td>
+            <td><input class="td-edit" value="${esc(item.desc)}" style="font-size:.78rem;width:100%"
+              oninput="(function(el){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){rows[${n}].querySelectorAll('input')[0].value=el.value;sl();recalc();}})(this)"></td>
+            ${roleTd}${intlTd}
+            <td><button class="del-btn no-print" title="Remove" onclick="(function(){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){rows[${n}].remove();sl();recalc();renderManualSections();}})()">✕</button></td>
+          </tr>`;
+        });
+        sec1Html+=`<div class="pub-sec">
+          <div class="psec-hdr" onclick="toggleSec(this)">
+            <div class="psec-l">
+              <span class="pts-chip">${subtotal.toFixed(1)} pts</span>
+              <div><div class="psec-title">${esc(l.label)}</div></div>
+            </div>
+            <span class="chev">▼</span>
+          </div>
+          <div class="twrap open"><table>${tHead}${tRows}</table></div>
+          <div class="psec-foot">${items.length} items · <strong>${subtotal.toFixed(1)} pts</strong></div>
+        </div>`;
+      });
+      return;
+    }
+    // §2/§3/§4 — individual pub-sec cards per subsection (same style as §1)
+    let secCards=''; let gTotal=0;
+    // UGC tier special (§2.8, no id)
+    let ugcCard='';
+    g.lists.forEach(l=>{
+      if(!l.id){
+        gTotal+=l.pts;
+        if(l.pts>0) ugcCard+=`<div class="pub-sec"><div class="psec-hdr" onclick="toggleSec(this)"><div class="psec-l"><span class="pts-chip">${l.pts.toFixed(1)} pts</span><div><div class="psec-title">${esc(l.label)}</div></div></div><span class="chev">▼</span></div><div class="twrap open"><table><tr><th>Value</th></tr><tr><td style="font-size:.82rem;color:var(--accent);font-weight:600">${esc(l.desc)}</td></tr></table></div><div class="psec-foot"><strong>${l.pts.toFixed(1)} pts</strong></div></div>`;
+        return;
+      }
+      const items=getListItems(l.id);
+      if(!items.length) return;
+      const subtotal=items.reduce((a,b)=>a+b.pts,0);
+      gTotal+=subtotal;
+      const hasIntl=['l_coord','l_org','l_chair'].includes(l.id);
+      const grpBase=l.id==='l_coord'?3:l.id==='l_org'?2:0.5;
+      const grpIntl=parseFloat((grpBase*1.5).toFixed(2));
+      let tHead=`<tr><th style="width:20px">#</th><th style="width:52px">Pts</th><th>Description</th>`;
+      if(hasIntl) tHead+=`<th style="width:80px">Scope</th>`;
+      tHead+=`<th style="width:24px"></th></tr>`;
+      let tRows='';
+      items.forEach((item,n)=>{
+        const intlTd=hasIntl?`<td style="padding:0 4px">
+          <button onclick="(function(){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){const chk=rows[${n}].querySelector('input[type=checkbox]');if(chk){chk.checked=!chk.checked;const numIns=[...rows[${n}].querySelectorAll('input')].filter(i=>i.type==='number');if(numIns.length)numIns[numIns.length-1].value=chk.checked?${grpIntl}:${grpBase};sl();recalc();renderManualSections();}}})()" style="font-size:.72rem;border:1px solid var(--border);border-radius:4px;padding:1px 6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap">${item.intl?'🌐 Intl':'🏠 Local'}</button>
+        </td>`:'';
+        tRows+=`<tr>
+          <td style="color:var(--fg3);width:20px">${n+1}</td>
+          <td class="td-pts"><input type="number" value="${item.pts}" min="0" step="0.5" style="width:48px;font-size:.78rem;text-align:center;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--accent);font-weight:700;padding:2px 3px"
+            oninput="(function(el){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){const numIns=[...rows[${n}].querySelectorAll('input')].filter(i=>i.type==='number');if(numIns.length)numIns[numIns.length-1].value=el.value;sl();recalc();renderManualSections();}})(this)"></td>
+          <td><input class="td-edit" value="${esc(item.desc)}" style="font-size:.78rem;width:100%"
+            oninput="(function(el){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){rows[${n}].querySelectorAll('input')[0].value=el.value;sl();recalc();}})(this)"></td>
+          ${intlTd}
+          <td><button class="del-btn no-print" title="Remove" onclick="(function(){const rows=document.querySelectorAll('#${l.id} .item-row');if(rows[${n}]){rows[${n}].remove();sl();recalc();renderManualSections();}})()">✕</button></td>
+        </tr>`;
+      });
+      secCards+=`<div class="pub-sec">
+        <div class="psec-hdr" onclick="toggleSec(this)">
+          <div class="psec-l"><span class="pts-chip">${subtotal.toFixed(1)} pts</span><div><div class="psec-title">${esc(l.label)}</div></div></div>
+          <span class="chev">▼</span>
+        </div>
+        <div class="twrap open"><table>${tHead}${tRows}</table></div>
+        <div class="psec-foot">${items.length} items · <strong>${subtotal.toFixed(1)} pts</strong></div>
+      </div>`;
+    });
+    if(!secCards && !ugcCard) return;
+    // Section header + cards
+    html+=`<div class="sec-main-hdr no-print" style="font-size:.82rem;font-weight:700;color:#fff;background:var(--accent);padding:7px 14px;border-radius:8px 8px 0 0;margin-top:12px;letter-spacing:.02em;display:flex;align-items:center;justify-content:space-between"><span>${g.title}</span><span style="background:rgba(255,255,255,0.25);color:#fff;border-radius:12px;padding:2px 10px;font-size:.75rem;font-weight:700">${gTotal.toFixed(1)} pts</span></div>${secCards}${ugcCard}`;
+  });
+  document.getElementById('sec1ManCards').innerHTML=sec1Html;
+  // Show §1 header if any §1 content exists
+  const sec1Hdr=document.getElementById('sec1Hdr');
+  if(sec1Hdr && sec1Html) sec1Hdr.style.display='block';
+  document.getElementById('manualSections').innerHTML=html;
+}
+
+// ── Print cover ───────────────────────────────────────
+function updatePrintCover(s1,s2,s3,s4,total){
+  const elig = total>=70 && s1>=50 && s2>=20;
+  const eligText = elig ? 'ELIGIBLE' : 'NOT ELIGIBLE';
+  const eligBg = elig ? '#1a5c2a' : '#7c1f1f'; // text color only, no dark backgrounds
+  const name = val('f_name')||'Applicant';
+  const initials = val('f_initials')||'';
+  const desig = val('f_desig')||'';
+  const inst = val('f_inst')||'';
+  const today = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+
+  // ── Scoring rows helper ──
+  function scoreRows(items){ return items.map(r=>`<tr><td>${r.label}</td><td class="pts-col">${r.pts}</td><td class="marks-col">${r.val}</td><td class="marks-col"></td></tr>`).join(''); }
+
+  // Build scoring table data
+  const secData = [
+    { label:'1. Research &amp; Development', min:'Min 50 pts / No upper limit', items:[
+      {label:'1.1 Publication in Q1/Q2 journal (1st/Corr ×2 = 12 pts)', pts:'6', val: (()=>{ const s=SECTIONS.find(s=>s.id==='q12'); let t=0; allWorks.filter(e=>e.section==='q12').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })()},
+      {label:'1.2 Publication in Q3/Q4 journal (1st/Corr ×2 = 8 pts)', pts:'4', val: (()=>{ const s=SECTIONS.find(s=>s.id==='q34'); let t=0; allWorks.filter(e=>e.section==='q34').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })()},
+      {label:'1.3 Full paper in other indexed journals (1st/Corr ×2 = 4 pts)', pts:'2', val: (()=>{ const s=SECTIONS.find(s=>s.id==='oi'); let t=0; allWorks.filter(e=>e.section==='oi').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })()},
+      {label:'1.4 Full paper in non-indexed journals (Max 15 pts)', pts:'1.5', val: (()=>{ const s=SECTIONS.find(s=>s.id==='ni'); let t=0,acc=0; allWorks.filter(e=>e.section==='ni').forEach(e=>{ const r=e.isFirst?s.base*s.mult:s.base; const p=s.maxPts&&acc>=s.maxPts?0:s.maxPts&&acc+r>s.maxPts?s.maxPts-acc:r; acc+=p; t+=p; }); return t.toFixed(1); })()},
+      {label:'1.5 Conference paper/extended abstract (Max 10 pts)', pts:'1', val: (()=>{ const s=SECTIONS.find(s=>s.id==='conf'); let t=0,acc=0; allWorks.filter(e=>e.section==='conf').forEach(e=>{ const r=e.isFirst?s.base*s.mult:s.base; const p=s.maxPts&&acc>=s.maxPts?0:s.maxPts&&acc+r>s.maxPts?s.maxPts-acc:r; acc+=p; t+=p; }); return t.toFixed(1); })()},
+      {label:'1.6 Abstract in conference/symposium (Max 10 pts)', pts:'0.5', val: (()=>{ const s=SECTIONS.find(s=>s.id==='abs'); let t=0,acc=0; allWorks.filter(e=>e.section==='abs').forEach(e=>{ const r=e.isFirst?s.base*s.mult:s.base; const p=s.maxPts&&acc>=s.maxPts?0:s.maxPts&&acc+r>s.maxPts?s.maxPts-acc:r; acc+=p; t+=p; }); return t.toFixed(1); })()},
+      {label:'1.7 Book published (1st/Corr ×2 = 6 pts)', pts:'3', val: (()=>{ const s=SECTIONS.find(s=>s.id==='book'); let t=0; allWorks.filter(e=>e.section==='book').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })()},
+      {label:'1.8 Book chapter published (1st/Corr ×2 = 4 pts)', pts:'2', val: (()=>{ const s=SECTIONS.find(s=>s.id==='chapter'); let t=0; allWorks.filter(e=>e.section==='chapter').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })()},
+      ...['l_edit_i','l_edit_n','l_rev_i','l_rev_n','l_aw_i','l_aw_n','l_aw_u','l_gr_i','l_gr_n','l_gr_u','l_phd','l_mphil','l_msc','l_pat'].flatMap(id=>getListItems(id).map(item=>({label:item.desc,pts:'—',val:item.pts.toFixed(1)})))
+    ], subtotal: s1 },
+    { label:'2. Science Communication &amp; Outreach', min:'Min 20 pts / Max 45 pts', items:[
+      ...['l_coord','l_org','l_chair','l_news','l_res','l_comm','l_memb'].flatMap(id=>getListItems(id).map(item=>({label:item.desc,pts:'—',val:item.pts.toFixed(1)}))),
+      {label:'UGC Research Performance Tier', pts:'—', val:(parseFloat(val('ugc_tier'))||0).toFixed(1)},
+    ], subtotal: s2 },
+    { label:'3. National Service', min:'Max 10 pts', items:[
+      ...['l_nat_p','l_nat_c'].flatMap(id=>getListItems(id).map(item=>({label:item.desc,pts:'—',val:item.pts.toFixed(1)})))
+    ], subtotal: s3 },
+    { label:'4. International Service', min:'Max 10 pts', items:[
+      ...['l_int_p','l_int_c'].flatMap(id=>getListItems(id).map(item=>({label:item.desc,pts:'—',val:item.pts.toFixed(1)})))
+    ], subtotal: s4 },
+  ];
+
+  // Build pub tables (print version — with DOI, SJR, WoS links + evidence)
+  const pubTables = SECTIONS.map(sec=>{
+    const entries = allWorks.filter(e=>e.section===sec.id);
+    if(!entries.length) return '';
+    let acc=0;
+    const rows=entries.map((e,i)=>{
+      const w=e.work;
+      const rawPts=e.isFirst?sec.base*sec.mult:sec.base;
+      let pts=rawPts;
+      if(sec.maxPts){ if(acc>=sec.maxPts) pts=0; else if(acc+rawPts>sec.maxPts) pts=sec.maxPts-acc; acc+=pts; } else acc+=pts;
+      const doi=(w.doi||'').replace('https://doi.org/','');
+      const authors=fmt(w.authorships,w);
+      // Q badge
+      const issns=safeIssns(w);
+      const q=getQ(w);
+      const qTxt=q||'—';
+      // venue for SJR/WoS links
+      const venue=w.primary_location?.source?.display_name||'';
+      const issn=(issns[0]||'').replace('-','');
+      const doiLink=doi?`<a href="https://doi.org/${doi}">↗ ${doi}</a>`:'—';
+      const sjrLink=issn?`<a href="https://www.scimagojr.com/journalsearch.php?q=${issn}">📊 SJR</a>`:(venue?`<a href="https://www.scimagojr.com/journalsearch.php?q=${encodeURIComponent(venue)}">📊 SJR</a>`:'');
+      const wosLink=issn?`<a href="https://mjl.clarivate.com/search-results?issn=${issn}">🔬 WoS</a>`:'';
+      // evidence filename — same logic as screen table
+      const secIdx=(SECTIONS.findIndex(s=>s.id===sec.id)+1);
+      const paperNum=String(i+1).padStart(2,'0');
+      const venueSlug=(venue).replace(/[^a-z0-9]/gi,'_').replace(/_+/g,'_').substring(0,20);
+      const yr=w.publication_year||'';
+      const evFile=`${sec.id.replace('q12','1.1').replace('q34','1.2').replace(/^oi$/,'1.3').replace(/^ni$/,'1.4').replace(/^conf$/,'1.5').replace(/^abs$/,'1.6').replace(/^book$/,'1.7').replace(/^chapter$/,'1.8')}_${paperNum}_${venueSlug}_${yr}.pdf`;
+      return `<tr>
+        <td class="num-cell">${i+1}</td>
+        <td>${esc(w.display_name||'')}</td>
+        <td>${esc(venue)}<br><small style="color:#555">${yr}</small></td>
+        <td><small>${esc(authors)}</small></td>
+        <td style="text-align:left;font-weight:700">${qTxt}</td>
+        <td style="text-align:left">${e.isFirst?'✓':''}</td>
+        <td class="pts-cell" style="${pts===0?'color:#999;text-decoration:line-through':''}">${pts===0?'0*':pts}</td>
+        <td style="font-size:8pt;line-height:1.6">
+          ${doiLink}<br>
+          ${sjrLink}${sjrLink&&wosLink?' &nbsp; ':''}${wosLink}<br>
+          <span style="color:#555;font-family:monospace;font-size:7.5pt">📄 ${evFile}</span>
+        </td>
+      </tr>`;
+    }).join('');
+    const secTotal=entries.reduce((t,e)=>{ const r=e.isFirst?sec.base*sec.mult:sec.base; return t+Math.min(r,sec.maxPts?sec.maxPts-Math.min(t,sec.maxPts):r); },0);
+    return `<div class="ps-pub-sec-title"><span>${esc(sec.label)}</span><span>${Math.min(secTotal,sec.maxPts||secTotal).toFixed(1)} pts${sec.maxPts?' (Max '+sec.maxPts+')':''}</span></div>
+      <table class="ps-pub-table">
+        <tr><th class="num-cell">#</th><th>Title</th><th>Venue</th><th>Authors</th><th>Q</th><th>1st/Corr</th><th class="pts-cell">Pts</th><th>Links &amp; Evidence</th></tr>
+        ${rows}
+      </table>`;
+  }).join('');
+
+  document.getElementById('printCover').innerHTML=`
+
+  <!-- ══ PAGE 1: COVER ══ -->
+  <div>
+    <div class="cv-header">
+      <div class="cv-header-title">Young Scientist Award for Research</div>
+      <div class="cv-header-sub">Supporting Dossier &middot; Self-Evaluation</div>
+    </div>
+    <div class="cv-applicant-section">
+      <div class="cv-label">Applicant</div>
+      <div class="cv-name">${esc(name)}</div>
+      <div class="cv-name-sub">${esc(desig)}${desig&&initials?' &middot; ':''} ${esc(initials)}</div>
+      <hr class="cv-divider">
+    </div>
+    <div class="cv-info-grid">
+      <div class="cv-info-block"><div class="cv-info-label">Current Position</div><div class="cv-info-value">${esc(desig)}<br>${esc(inst)}</div></div>
+      <div class="cv-info-block"><div class="cv-info-label">Contact</div><div class="cv-info-value">${esc(val('f_email'))}<br>${esc(val('f_mobile'))}</div></div>
+      <div class="cv-info-block"><div class="cv-info-label">Academic Qualifications</div><div class="cv-info-value">${esc(val('ug_deg'))}, ${esc(val('ug_uni'))} (${esc(val('ug_yr'))})<br>${esc(val('pg_deg'))}, ${esc(val('pg_uni'))} (${esc(val('pg_yr'))})</div></div>
+      <div class="cv-info-block"><div class="cv-info-label">Research Score</div><div class="cv-info-value" style="font-weight:700;font-size:13pt;color:#1a2744">${total.toFixed(1)} pts<br><span style="font-size:8pt;font-weight:400;color:#555">S1: ${s1.toFixed(1)} | S2: ${s2.toFixed(1)} | S3: ${s3.toFixed(1)} | S4: ${s4.toFixed(1)}</span></div></div>
+      <div class="cv-info-block"><div class="cv-info-label">YSF Membership</div><div class="cv-info-value">${esc(val('f_ysf'))}</div></div>
+      <div class="cv-info-block"><div class="cv-info-label">Date of Submission</div><div class="cv-info-value">${esc(val('d_to')||today)}</div></div>
+    </div>
+    <div class="cv-doc-box">
+      <div class="cv-doc-label">Eligibility Status</div>
+      <div class="cv-doc-title" style="color:${eligBg}">${eligText} &mdash; Total: ${total.toFixed(1)} pts (Min 70 required)</div>
+      <div class="cv-doc-desc">Section 1 (R&amp;D): ${s1.toFixed(1)} pts (min 50) &nbsp;&middot;&nbsp; Section 2 (Outreach): ${s2.toFixed(1)} pts (min 20)</div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE 2: RESEARCH SUMMARY ══ -->
+  ${val('f_summary')?`<div class="ps-research">
+    <div class="ps-research-title">Research Activities Summary</div>
+    <div class="ps-research-byline">${esc(name)}${initials?' &mdash; '+esc(initials):''} &nbsp;|&nbsp; Young Scientist Award for Research</div>
+    <div class="ps-research-body">${esc(val('f_summary')).replace(/\n/g,'<br>')}</div>
+  </div>`:''}
+
+  <!-- ══ PAGE 3: APPLICATION FORM ══ -->
+  <div class="ps-form">
+    <div class="ps-form-title">Application for the Young Scientist Award for Research</div>
+    <table class="ps-form-table">
+      <tr><td colspan="4" class="ps-form-section">Personal Details</td></tr>
+      <tr><td class="ps-form-label">Full Name</td><td class="ps-form-value" colspan="3">${esc(val('f_name'))}</td></tr>
+      <tr><td class="ps-form-label">Name with Initials</td><td class="ps-form-value" colspan="3">${esc(val('f_initials'))}</td></tr>
+      <tr><td class="ps-form-label">Date of Birth</td><td class="ps-form-value">${esc(val('f_dob'))}</td><td class="ps-form-label">Age as at ${esc(val('d_to'))}</td><td class="ps-form-value">${esc(val('f_age'))} Years</td></tr>
+      <tr><td class="ps-form-label">Present Institution</td><td class="ps-form-value" colspan="3">${esc(val('f_inst'))}</td></tr>
+      <tr><td class="ps-form-label">Designation</td><td class="ps-form-value" colspan="3">${esc(val('f_desig'))}</td></tr>
+      <tr><td class="ps-form-label">Mobile No.</td><td class="ps-form-value">${esc(val('f_mobile'))}</td><td class="ps-form-label">Email</td><td class="ps-form-value">${esc(val('f_email'))}</td></tr>
+      <tr><td class="ps-form-label">YSF Membership No.</td><td class="ps-form-value" colspan="3">${esc(val('f_ysf'))}</td></tr>
+      <tr><td colspan="4" class="ps-form-section">Academic Qualifications</td></tr>
+      <tr><td class="ps-form-label">Undergraduate</td><td class="ps-form-value" colspan="3">${esc(val('ug_deg'))}, ${esc(val('ug_uni'))}${val('ug_yr')?' ('+esc(val('ug_yr'))+')':''}</td></tr>
+      <tr><td class="ps-form-label">Postgraduate</td><td class="ps-form-value" colspan="3">${esc(val('pg_deg'))}, ${esc(val('pg_uni'))}${val('pg_yr')?' ('+esc(val('pg_yr'))+')':''}</td></tr>
+      <tr><td class="ps-form-label">Field of Specialization</td><td class="ps-form-value" colspan="3">${esc(document.getElementById('f_field')?.options[document.getElementById('f_field')?.selectedIndex]?.text||val('f_field'))}</td></tr>
+      <tr><td colspan="4" class="ps-form-section">Details of Two Non-Related Referees</td></tr>
+      <tr><th style="width:28%">Referee 1</th><th style="width:22%"></th><th style="width:28%">Referee 2</th><th style="width:22%"></th></tr>
+      <tr><td class="ps-form-label">Name</td><td class="ps-form-value">${esc(val('r1_name'))}</td><td class="ps-form-label">Name</td><td class="ps-form-value">${esc(val('r2_name'))}</td></tr>
+      <tr><td class="ps-form-label">Designation</td><td class="ps-form-value">${esc(val('r1_desig'))}</td><td class="ps-form-label">Designation</td><td class="ps-form-value">${esc(val('r2_desig'))}</td></tr>
+      <tr><td class="ps-form-label">Institution</td><td class="ps-form-value">${esc(val('r1_inst'))}</td><td class="ps-form-label">Institution</td><td class="ps-form-value">${esc(val('r2_inst'))}</td></tr>
+      <tr><td class="ps-form-label">Contact No.</td><td class="ps-form-value">${esc(val('r1_tel'))}</td><td class="ps-form-label">Contact No.</td><td class="ps-form-value">${esc(val('r2_tel'))}</td></tr>
+      <tr><td class="ps-form-label">Email</td><td class="ps-form-value">${esc(val('r1_email'))}</td><td class="ps-form-label">Email</td><td class="ps-form-value">${esc(val('r2_email'))}</td></tr>
+    </table>
+    <div class="ps-elig-box" style="border-color:${eligBg};color:${eligBg}">${eligText} &mdash; Total Score: ${total.toFixed(1)} pts</div>
+    <table class="ps-form-table" style="font-size:8pt;margin-top:20px">
+      <tr><td style="width:60%">I certify that the information provided in this application are true and accurate.</td><td>Signature of Applicant:</td></tr>
+      <tr style="height:40px"><td></td><td>Date: ${esc(val('d_to')||today)}</td></tr>
+    </table>
+  </div>
+
+  <!-- ══ PAGE 4: SELF-EVALUATION ══ -->
+  <div class="ps-score">
+    <div class="ps-score-title">Self-Evaluation</div>
+    <div class="ps-score-sub">Please record your responses in the designated column ("Marks Claimed by the Applicant") and calculate the total points for each activity type.<br><em style="font-size:8pt">(For example, if a full paper in a non-indexed journal is worth 1.5 points, achieving 10 such publications would yield a total of 1.5 points per paper × 10 papers = 15 points.)</em></div>
+    <table class="ps-score-table">
+      <tr><th style="text-align:left">Criteria</th><th class="pts-col">Points per Activity</th><th class="marks-col">Marks Claimed by Applicant</th><th class="marks-col">Marks given by Evaluator</th></tr>
+
+      <!-- SECTION 1 -->
+      <tr class="sec-header"><td colspan="4">1. Research &amp; Development (Minimum 50 points required for eligibility / No upper limit)</td></tr>
+      ${(()=>{
+        const q12v=(()=>{ const s=SECTIONS.find(s=>s.id==='q12'); let t=0; allWorks.filter(e=>e.section==='q12').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })();
+        const q34v=(()=>{ const s=SECTIONS.find(s=>s.id==='q34'); let t=0; allWorks.filter(e=>e.section==='q34').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })();
+        const oiv=(()=>{ const s=SECTIONS.find(s=>s.id==='oi'); let t=0; allWorks.filter(e=>e.section==='oi').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })();
+        const niv=(()=>{ const s=SECTIONS.find(s=>s.id==='ni'); let t=0,acc=0; allWorks.filter(e=>e.section==='ni').forEach(e=>{ const r=e.isFirst?s.base*s.mult:s.base; const p=s.maxPts&&acc>=s.maxPts?0:s.maxPts&&acc+r>s.maxPts?s.maxPts-acc:r; acc+=p; t+=p; }); return t.toFixed(1); })();
+        const confv=(()=>{ const s=SECTIONS.find(s=>s.id==='conf'); let t=0,acc=0; allWorks.filter(e=>e.section==='conf').forEach(e=>{ const r=e.isFirst?s.base*s.mult:s.base; const p=s.maxPts&&acc>=s.maxPts?0:s.maxPts&&acc+r>s.maxPts?s.maxPts-acc:r; acc+=p; t+=p; }); return t.toFixed(1); })();
+        const absv=(()=>{ const s=SECTIONS.find(s=>s.id==='abs'); let t=0,acc=0; allWorks.filter(e=>e.section==='abs').forEach(e=>{ const r=e.isFirst?s.base*s.mult:s.base; const p=s.maxPts&&acc>=s.maxPts?0:s.maxPts&&acc+r>s.maxPts?s.maxPts-acc:r; acc+=p; t+=p; }); return t.toFixed(1); })();
+        const bookv=(()=>{ const s=SECTIONS.find(s=>s.id==='book'); let t=0; allWorks.filter(e=>e.section==='book').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })();
+        const chapv=(()=>{ const s=SECTIONS.find(s=>s.id==='chapter'); let t=0; allWorks.filter(e=>e.section==='chapter').forEach(e=>t+=e.isFirst?s.base*s.mult:s.base); return t.toFixed(1); })();
+
+        const renderItems=(id,label,pts)=>{
+          const items=getListItems(id);
+          const total=items.reduce((a,b)=>a+b.pts,0).toFixed(1);
+          return `<tr><td>1.${label}</td><td class="pts-col">${pts}</td><td class="marks-col">${total}</td><td class="marks-col"></td></tr>`;
+        };
+
+        return `
+          <tr><td>1.1. &nbsp; Publication in a Q1 and Q2 journal<sup>(1)</sup></td><td class="pts-col">6 points</td><td class="marks-col">${q12v}</td><td class="marks-col"></td></tr>
+          <tr><td>1.2. &nbsp; Publication in a Q3 and Q4 journal<sup>(1)</sup></td><td class="pts-col">4 points</td><td class="marks-col">${q34v}</td><td class="marks-col"></td></tr>
+          <tr><td>1.3. &nbsp; Full paper in other indexed journals<sup>(1)</sup></td><td class="pts-col">2 points</td><td class="marks-col">${oiv}</td><td class="marks-col"></td></tr>
+          <tr><td>1.4. &nbsp; Full paper in non-indexed journals<sup>(1)</sup></td><td class="pts-col">1.5 points (Max 15)</td><td class="marks-col">${niv}</td><td class="marks-col"></td></tr>
+          <tr><td>1.5. &nbsp; Full paper/extended abstract in conference/symposium<sup>(1)</sup></td><td class="pts-col">1 point (Max 10)</td><td class="marks-col">${confv}</td><td class="marks-col"></td></tr>
+          <tr><td>1.6. &nbsp; Abstract in conference/symposium<sup>(1)</sup></td><td class="pts-col">0.5 points (Max 10)</td><td class="marks-col">${absv}</td><td class="marks-col"></td></tr>
+          <tr><td>1.7. &nbsp; Book published (advanced/research oriented)<sup>(1)</sup></td><td class="pts-col">3 points</td><td class="marks-col">${bookv}</td><td class="marks-col"></td></tr>
+          <tr><td>1.8. &nbsp; Book chapter published (advanced/research oriented)<sup>(1)</sup></td><td class="pts-col">2 points</td><td class="marks-col">${chapv}</td><td class="marks-col"></td></tr>
+          ${renderItems('l_edit_i','9. &nbsp; Member/Editor — Indexed publication<sup>(2)</sup>','4 points')}
+          ${renderItems('l_edit_n','10. &nbsp; Member/Editor — Non-indexed publication<sup>(2)</sup>','2 points')}
+          ${renderItems('l_rev_i','11. &nbsp; Reviewer — Indexed journals (Max 4 pts)','1 point')}
+          ${renderItems('l_rev_n','12. &nbsp; Reviewer — Non-indexed journals (Max 2 pts)','0.5 points')}
+          ${renderItems('l_aw_i','13. &nbsp; International Research Award','6 points')}
+          ${renderItems('l_aw_n','14. &nbsp; National Research Award','4 points')}
+          ${renderItems('l_aw_u','15. &nbsp; University/Institutional Research Award (Max 6 pts)','2 points')}
+          ${renderItems('l_gr_i','16. &nbsp; International Research Grant','4 points')}
+          ${renderItems('l_gr_n','17. &nbsp; National Research Grant','3 points')}
+          ${renderItems('l_gr_u','18. &nbsp; University/Institutional Research Grants','2 points')}
+          ${renderItems('l_phd','19. &nbsp; Supervision — Ph.D. Degrees<sup>(3)</sup>','4 Points')}
+          ${renderItems('l_mphil','20. &nbsp; Supervision — M.Phil. Degrees<sup>(3)</sup>','2 points')}
+          ${renderItems('l_msc','21. &nbsp; Supervision — MSc. Degrees<sup>(3)</sup>','1 point')}
+          ${renderItems('l_pat','22. &nbsp; National or International Patent awarded (Max 10 pts)','5 Points')}
+          <tr style="font-size:7.5pt;color:#444"><td colspan="4" style="padding:4px 8px;font-style:italic">
+            <sup>(1)</sup> For 1st Author/Corresponding author, marks will be multiplied by 2 &nbsp;&nbsp;
+            <sup>(2)</sup> For Chief Editor ×2, Associated editor ×1.5 &nbsp;&nbsp;
+            <sup>(3)</sup> Principal Supervisor full marks; other supervisors 50%
+          </td></tr>`;
+      })()}
+      <tr class="subtotal"><td colspan="3"><strong>Sub-total for Section 1</strong></td><td class="marks-col"><strong>${s1.toFixed(1)}</strong></td></tr>
+
+      <!-- SECTION 2 -->
+      <tr class="sec-header"><td colspan="4">2. Science communication and outreach (Minimum 20 points / Maximum 45 points)</td></tr>
+      ${(()=>{
+        const renderItems2=(id,label,pts)=>{
+          const items=getListItems(id);
+          return `<tr><td>${label}</td><td class="pts-col">${pts}</td><td class="marks-col">${items.reduce((a,b)=>a+b.pts,0).toFixed(1)}</td><td class="marks-col"></td></tr>`;
+        };
+        const tierVal=(parseFloat(val('ugc_tier'))||0).toFixed(1);
+        const tierDesc=(()=>{ try{ const el=document.getElementById('ugc_tier'); const i=el?el.selectedIndex:-1; return (i>=0&&el.options[i])?el.options[i].text:'—'; }catch(e){ return '—'; } })();
+        return `
+          ${renderItems2('l_coord','2.1. &nbsp; Main coordinator/organizer of workshops/conferences/symposium<sup>(4)</sup>','3 points (Max 9)')}
+          ${renderItems2('l_org','2.2. &nbsp; Other organizing positions in workshops/conferences/symposium<sup>(4)</sup>','2 points (Max 6)')}
+          ${renderItems2('l_chair','2.3. &nbsp; Session chair in conferences/symposium<sup>(4)</sup>','0.5 points (Max 5)')}
+          ${renderItems2('l_news','2.4. &nbsp; Featured newsletter articles/scientific magazine articles','0.5 points (Max 3)')}
+          ${renderItems2('l_res','2.5. &nbsp; Resource person in workshops/conferences and training programmes','1 point (Max 5)')}
+          ${renderItems2('l_comm','2.6. &nbsp; Professional/community-based activities to popularize science','1 point (Max 5)')}
+          ${renderItems2('l_memb','2.7. &nbsp; Active membership in professional bodies','1 point (Max 5)')}
+          <tr><td>2.8. &nbsp; UGC Research Performance Tier (Tier 4*=10pts, Tier 4=8pts, Tier 3=6pts, Tier 2=4pts, Tier 1=0)</td><td class="pts-col">—</td><td class="marks-col">${tierVal}</td><td class="marks-col"></td></tr>
+          <tr style="font-size:7.5pt;color:#444"><td colspan="4" style="padding:4px 8px;font-style:italic"><sup>(4)</sup> For International events, marks will be multiplied by 1.5</td></tr>`;
+      })()}
+      <tr class="subtotal"><td colspan="3"><strong>Sub-total for Section 2</strong></td><td class="marks-col"><strong>${s2.toFixed(1)}</strong></td></tr>
+
+      <!-- SECTION 3 -->
+      <tr class="sec-header"><td colspan="4">3. National Service (No lower limit / Maximum 10 points)</td></tr>
+      ${(()=>{
+        const renderItems3=(id,label,pts)=>{
+          const items=getListItems(id);
+          return `<tr><td>${label}</td><td class="pts-col">${pts}</td><td class="marks-col">${items.reduce((a,b)=>a+b.pts,0).toFixed(1)}</td><td class="marks-col"></td></tr>`;
+        };
+        return `
+          ${renderItems3('l_nat_p','3.1. &nbsp; National level policy development<sup>(5)</sup>','3 points')}
+          ${renderItems3('l_nat_c','3.2. &nbsp; Member of national committee','2 points')}`;
+      })()}
+      <tr class="subtotal"><td colspan="3"><strong>Sub-total for Section 3</strong></td><td class="marks-col"><strong>${s3.toFixed(1)}</strong></td></tr>
+
+      <!-- SECTION 4 -->
+      <tr class="sec-header"><td colspan="4">4. International Service (No lower limit / Maximum 10 points)</td></tr>
+      ${(()=>{
+        const renderItems4=(id,label,pts)=>{
+          const items=getListItems(id);
+          return `<tr><td>${label}</td><td class="pts-col">${pts}</td><td class="marks-col">${items.reduce((a,b)=>a+b.pts,0).toFixed(1)}</td><td class="marks-col"></td></tr>`;
+        };
+        return `
+          ${renderItems4('l_int_p','4.1. &nbsp; International level policy development<sup>(5)</sup>','4 points')}
+          ${renderItems4('l_int_c','4.2. &nbsp; Member of international committee','3 points')}
+          <tr style="font-size:7.5pt;color:#444"><td colspan="4" style="padding:4px 8px;font-style:italic"><sup>(5)</sup> Members of the National/International policy development committee, stakeholders participated in a policy development meeting, etc.</td></tr>`;
+      })()}
+      <tr class="subtotal"><td colspan="3"><strong>Sub-total for Section 4</strong></td><td class="marks-col"><strong>${s4.toFixed(1)}</strong></td></tr>
+
+      <tr class="total-row"><td colspan="3"><strong>Total</strong></td><td class="marks-col"><strong>${total.toFixed(1)}</strong></td></tr>
+    </table>
+  </div>
+
+  <!-- ══ PAGE 5+: ALL DETAIL TABLES ══ -->
+  ${(()=>{
+    const hasRole=(id)=>['l_edit_i','l_edit_n','l_phd','l_mphil','l_msc'].includes(id);
+    const hasIntl=(id)=>['l_coord','l_org','l_chair'].includes(id);
+
+    // Build §1.1–1.8 pub tables (existing pubTables logic, now inside section wrapper)
+    const sec1PubHtml = pubTables;
+
+    // §1.9–1.22 manual items
+    const sec1ManualSubs=[
+      {id:'l_edit_i', sub:'§1.9',  label:'Member/Editor of an editorial board of an Indexed scientific publication'},
+      {id:'l_edit_n', sub:'§1.10', label:'Member/Editor of an editorial board of a non-indexed scientific publication'},
+      {id:'l_rev_i',  sub:'§1.11', label:'Reviewer of Indexed (Scopus/Web of Science) journals'},
+      {id:'l_rev_n',  sub:'§1.12', label:'Reviewer of non-indexed journals'},
+      {id:'l_aw_i',   sub:'§1.13', label:'International Research Award'},
+      {id:'l_aw_n',   sub:'§1.14', label:'National Research Award'},
+      {id:'l_aw_u',   sub:'§1.15', label:'University/Institutional Research Award (Max 6 pts)'},
+      {id:'l_gr_i',   sub:'§1.16', label:'International Research Grant'},
+      {id:'l_gr_n',   sub:'§1.17', label:'National Research Grant'},
+      {id:'l_gr_u',   sub:'§1.18', label:'University/Institutional Research Grants'},
+      {id:'l_phd',    sub:'§1.19', label:'Supervision of Postgraduate Degrees – Ph.D. Degrees'},
+      {id:'l_mphil',  sub:'§1.20', label:'Supervision of Postgraduate Degrees – M.Phil. Degrees'},
+      {id:'l_msc',    sub:'§1.21', label:'Supervision of Postgraduate Degrees – MSc. Degrees'},
+      {id:'l_pat',    sub:'§1.22', label:'National or International Patent awarded (Max 10 pts)'},
+    ];
+
+    const sec2Subs=[
+      {id:'l_coord', sub:'§2.1', label:'Main coordinator/organizer of workshops/conferences/symposium'},
+      {id:'l_org',   sub:'§2.2', label:'Other organizing positions in workshops/conferences/symposium'},
+      {id:'l_chair', sub:'§2.3', label:'Session chair in conferences/symposium'},
+      {id:'l_news',  sub:'§2.4', label:'Featured newsletter articles/scientific magazine articles'},
+      {id:'l_res',   sub:'§2.5', label:'Resource person in workshops/conferences and training programmes'},
+      {id:'l_comm',  sub:'§2.6', label:'Professional/community-based activities to popularize science'},
+      {id:'l_memb',  sub:'§2.7', label:'Active membership in professional bodies'},
+    ];
+
+    const sec3Subs=[
+      {id:'l_nat_p', sub:'§3.1', label:'National level policy development'},
+      {id:'l_nat_c', sub:'§3.2', label:'Member of national committee'},
+    ];
+
+    const sec4Subs=[
+      {id:'l_int_p', sub:'§4.1', label:'International level policy development'},
+      {id:'l_int_c', sub:'§4.2', label:'Member of international committee'},
+    ];
+
+    const makeSubTable=(s)=>{
+      const items=getListItems(s.id);
+      if(!items.length) return '';
+      const subtotal=items.reduce((a,b)=>a+b.pts,0);
+      const thRole=hasRole(s.id)?'<th>Role</th>':'';
+      const thIntl=hasIntl(s.id)?'<th style="text-align:center">Scope</th>':'';
+      const rows=items.map((it,n)=>{
+        const roleCell=hasRole(s.id)?`<td style="font-size:8pt">${esc(it.role||'—')}</td>`:'';
+        const intlCell=hasIntl(s.id)?`<td style="font-size:8pt;text-align:center">${it.intl?'International':'Local'}</td>`:'';
+        return `<tr><td style="text-align:center;color:#888;width:20px">${n+1}</td><td>${esc(it.desc)}</td>${roleCell}${intlCell}<td style="text-align:center;font-weight:700;width:40px">${it.pts}</td></tr>`;
+      }).join('');
+      const totalCols=2+(hasRole(s.id)?1:0)+(hasIntl(s.id)?1:0)+1;
+      return `<div class="ps-pub-sec-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>${s.sub} · ${s.label}</span>
+          <span style="font-weight:700">${subtotal.toFixed(1)} pts</span>
+        </div>
+        <table class="ps-pub-table">
+          <tr><th style="width:20px">#</th><th>Item</th>${thRole}${thIntl}<th style="text-align:center;width:40px">Pts</th></tr>
+          ${rows}
+        </table>`;
+    };
+
+    const sec1ManHtml=sec1ManualSubs.map(makeSubTable).join('');
+    const sec2Html=sec2Subs.map(makeSubTable).join('');
+    const sec3Html=sec3Subs.map(makeSubTable).join('');
+    const sec4Html=sec4Subs.map(makeSubTable).join('');
+
+    const navyHdr=(label,pts)=>`<div style="font-size:12pt;font-weight:700;color:#fff;background:#1a2744;padding:7px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><span>${label}</span><span style="font-size:10pt;opacity:.9">${pts.toFixed(1)} pts</span></div>`;
+    return `<div class="ps-pubs" style="page-break-before:always;">
+      ${navyHdr('§1 — RESEARCH &amp; DEVELOPMENT',s1)}
+      ${sec1PubHtml}
+      ${sec1ManHtml}
+      <p style="font-size:7pt;color:#666;margin-top:8px">* Over cap — does not count toward total. &nbsp; ✓ = First/Corresponding author &nbsp; ↗ = DOI &nbsp; 📊 = Scimago/SJR &nbsp; 🔬 = Web of Science</p>
+    </div>
+    ${sec2Html?`<div class="ps-pubs" style="page-break-before:always;">
+      ${navyHdr('§2 — SCIENCE COMMUNICATION &amp; OUTREACH',s2)}
+      ${sec2Html}
+    </div>`:''}
+    ${(sec3Html||sec4Html)?`<div class="ps-pubs" style="page-break-before:always;">
+      ${sec3Html?navyHdr('§3 — NATIONAL SERVICE',s3)+sec3Html:''}
+      ${sec4Html?`<div style="margin-top:16px">${navyHdr('§4 — INTERNATIONAL SERVICE',s4)}${sec4Html}</div>`:''}
+    </div>`:''}`;
+  })()}
+  `;
+}
+
+// ── Evidence list copy ────────────────────────────────
+function copyEvList(){
+  const text=document.getElementById('evList').textContent;
+  navigator.clipboard.writeText(text).then(()=>{ const btn=document.querySelector('.copy-ev-btn'); btn.textContent='✅ Copied!'; setTimeout(()=>btn.textContent='📋 Copy list',2000); }).catch(()=>{});
+}
+
+// ── Add manual item ───────────────────────────────────
+function addItem(lid,def,skipRender){
+  const list=document.getElementById(lid);
+  const row=document.createElement('div'); row.className='item-row';
+
+  // §1.9/1.10 — Editor role dropdown
+  if(lid==='l_edit_i'||lid==='l_edit_n'){
+    const base=lid==='l_edit_i'?4:2;
+    row.innerHTML=`<input type="text" placeholder="Publication name" style="flex:1" oninput="sl();recalc()">
+      <select class="pts-in" style="width:130px;padding:4px 5px" onchange="this.nextElementSibling.value=this.value;sl();recalc();renderManualSections()">
+        <option value="${base}">Member (${base} pts)</option>
+        <option value="${(base*1.5).toFixed(1)}">Assoc. Editor (×1.5 = ${(base*1.5).toFixed(1)} pts)</option>
+        <option value="${base*2}">Chief Editor (×2 = ${base*2} pts)</option>
+      </select>
+      <input type="number" class="pts-in" value="${base}" min="0" step="0.5" style="width:50px" oninput="sl();recalc();renderManualSections()">
+      <button class="del-btn" onclick="this.parentElement.remove();sl();recalc();renderManualSections()">✕</button>`;
+    list.appendChild(row);
+    if(!skipRender) renderManualSections();
+    return;
+  }
+
+  // §1.19/1.20/1.21 — Supervision checkbox
+  if(lid==='l_phd'||lid==='l_mphil'||lid==='l_msc'){
+    const full=lid==='l_phd'?4:lid==='l_mphil'?2:1;
+    const half=full*0.5;
+    row.innerHTML=`<input type="text" placeholder="Student name / thesis title" style="flex:1" oninput="sl();recalc()">
+      <label style="font-size:.72rem;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:3px">
+        <input type="checkbox" checked onchange="this.parentElement.nextElementSibling.value=this.checked?${full}:${half};sl();recalc();renderManualSections()"> Principal
+      </label>
+      <input type="number" class="pts-in" value="${full}" min="0" step="0.5" style="width:50px" oninput="sl();recalc();renderManualSections()">
+      <button class="del-btn" onclick="this.parentElement.remove();sl();recalc();renderManualSections()">✕</button>`;
+    list.appendChild(row);
+    if(!skipRender) renderManualSections();
+    return;
+  }
+
+  // §2.1/2.2/2.3 — International checkbox
+  if(lid==='l_coord'||lid==='l_org'||lid==='l_chair'){
+    const base=lid==='l_coord'?3:lid==='l_org'?2:0.5;
+    const intl=parseFloat((base*1.5).toFixed(2));
+    row.innerHTML=`<input type="text" placeholder="Event name" style="flex:1" oninput="sl();recalc()">
+      <label style="font-size:.72rem;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:3px">
+        <input type="checkbox" onchange="this.parentElement.nextElementSibling.value=this.checked?${intl}:${base};sl();recalc();renderManualSections()"> Intl ×1.5
+      </label>
+      <input type="number" class="pts-in" value="${base}" min="0" step="0.5" style="width:50px" oninput="sl();recalc();renderManualSections()">
+      <button class="del-btn" onclick="this.parentElement.remove();sl();recalc();renderManualSections()">✕</button>`;
+    list.appendChild(row);
+    if(!skipRender) renderManualSections();
+    return;
+  }
+
+  // Default
+  row.innerHTML=`<input type="text" placeholder="Description" oninput="sl();recalc()">
+    <input type="number" class="pts-in" value="${def}" min="0" step="0.5" oninput="sl();recalc();renderManualSections()">
+    <button class="del-btn" onclick="this.parentElement.remove();sl();recalc();renderManualSections()">✕</button>`;
+  list.appendChild(row);
+  if(!skipRender) renderManualSections();
+}
+
+// ── Checklist ─────────────────────────────────────────
+function updateChecklist(){
+  for(let i=0;i<=10;i++){
+    const cb=document.getElementById('c'+i), item=document.getElementById('chk'+i);
+    if(cb&&item) item.className='check-item'+(cb.checked?' done':'');
+  }
+  sl();
+}
+
+// ── Toggle sections ───────────────────────────────────
+function toggleSec(hdr){ const wrap=hdr.nextElementSibling; const chev=hdr.querySelector('.chev'); wrap.classList.toggle('open'); chev.textContent=wrap.classList.contains('open')?'▼':'▶'; }
+function toggleMS(hdr){ const body=hdr.nextElementSibling; const chev=hdr.querySelector('.chev'); body.classList.toggle('open'); chev.textContent=body.classList.contains('open')?'▼':'▶'; }
+function collapseAll(){ document.querySelectorAll('.twrap,.msec-body').forEach(el=>el.classList.remove('open')); document.querySelectorAll('.chev').forEach(el=>el.textContent='▶'); }
+function expandAll()  { document.querySelectorAll('.twrap,.msec-body').forEach(el=>el.classList.add('open'));    document.querySelectorAll('.chev').forEach(el=>el.textContent='▼'); }
+
+// ── Dark mode ─────────────────────────────────────────
+function toggleTheme(){
+  const html=document.documentElement;
+  const dark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',dark?'light':'dark');
+  document.getElementById('themeBtn').textContent=dark?'🌙 Dark':'☀️ Light';
+  try{ localStorage.setItem('ysf_theme',dark?'light':'dark'); }catch{}
+}
+
+// ── Save/Load ─────────────────────────────────────────
+function getFormData(){
+  const fields=['f_name','f_initials','f_dob','f_inst','f_desig','f_mobile','f_email','f_ysf',
+    'f_summary','d_from','d_to','f_oaid','gs_h','f_field',
+    'ug_deg','ug_uni','ug_yr','pg_deg','pg_uni','pg_yr',
+    'r1_name','r1_desig','r1_inst','r1_tel','r1_email',
+    'r2_name','r2_desig','r2_inst','r2_tel','r2_email'];
+  const data={};
+  fields.forEach(id=>{ data[id]=val(id); });
+  const listIds=['l_edit_i','l_edit_n','l_rev_i','l_rev_n','l_aw_i','l_aw_n','l_aw_u',
+    'l_gr_i','l_gr_n','l_gr_u','l_phd','l_mphil','l_msc','l_pat',
+    'l_coord','l_org','l_chair','l_news','l_res','l_comm','l_memb',
+    'l_nat_p','l_nat_c','l_int_p','l_int_c'];
+  data.lists={};
+  listIds.forEach(id=>{ data.lists[id]=getListItems(id); });
+  data.checklist=[];
+  for(let i=0;i<=10;i++) data.checklist.push(document.getElementById('c'+i)?.checked||false);
+  data.works=allWorks.filter(e=>e&&e.work&&e.work.id).map(e=>{
+    const w=e.work||{};
+    return {
+      work:{
+        id:w.id, doi:w.doi, display_name:w.display_name,
+        type:w.type, publication_year:w.publication_year,
+        cited_by_count:w.cited_by_count,
+        _manual:w._manual||false, _authors_str:w._authors_str||'', _isbn:w._isbn||'',
+        // Minimal primary_location — only what venueLinks needs
+        primary_location:{
+          source:{
+            display_name:w.primary_location?.source?.display_name,
+            homepage_url:w.primary_location?.source?.homepage_url,
+            issn:w.primary_location?.source?.issn,
+            type:w.primary_location?.source?.type,
+          }
+        },
+        // Minimal authorships — only display_name + position
+        authorships:(w.authorships||[]).slice(0,10).map(a=>({
+          author:{id:a.author?.id,display_name:a.author?.display_name},
+          author_position:a.author_position,
+          is_corresponding:a.is_corresponding
+        }))
+      },
+      section:e.section,isFirst:e.isFirst,pgNum:e.pgNum||'',notes:e.notes||''
+    };
+  });
+  data.authorId=authorId;
+  return data;
+}
+
+function restoreFormData(data){
+  const fields=['f_name','f_initials','f_dob','f_inst','f_desig','f_mobile','f_email','f_ysf',
+    'f_summary','d_from','d_to','f_oaid','gs_h','f_field',
+    'ug_deg','ug_uni','ug_yr','pg_deg','pg_uni','pg_yr',
+    'r1_name','r1_desig','r1_inst','r1_tel','r1_email',
+    'r2_name','r2_desig','r2_inst','r2_tel','r2_email'];
+  fields.forEach(id=>{ if(data[id]!==undefined){ const el=document.getElementById(id); if(el) el.value=data[id]; }});
+  // Restore UGC tier display after field restore
+  if(data['f_field']) calcUGCTier();
+  if(data.lists){
+    Object.entries(data.lists).forEach(([id,items])=>{
+      const list=document.getElementById(id); if(!list) return;
+      list.innerHTML='';
+      items.forEach(item=>{
+        // Use addItem() so dropdowns/checkboxes are created correctly (skipRender=true, render once at end)
+        addItem(id, item.pts, true);
+        const row=list.lastElementChild; if(!row) return;
+        // Set description (first text input)
+        const textIn=row.querySelector('input[type="text"]');
+        if(textIn) textIn.value=item.desc||'';
+        // Set pts (last number input)
+        const numIns=[...row.querySelectorAll('input')].filter(i=>i.type==='number');
+        const ptsIn=numIns[numIns.length-1];
+        if(ptsIn) ptsIn.value=item.pts;
+        // Set select value (role dropdown) and sync number input
+        const sel=row.querySelector('select');
+        if(sel){
+          // Try exact match first, then closest by numeric value
+          const opts=[...sel.options];
+          const exact=opts.find(o=>parseFloat(o.value)===parseFloat(item.pts));
+          if(exact) sel.value=exact.value;
+          else{
+            const closest=opts.reduce((a,b)=>Math.abs(parseFloat(b.value)-item.pts)<Math.abs(parseFloat(a.value)-item.pts)?b:a);
+            sel.value=closest.value;
+          }
+          if(ptsIn) ptsIn.value=sel.value;
+        }
+        // Set checkbox (supervision: Principal/Other, intl scope: Intl/Local)
+        const chk=row.querySelector('input[type="checkbox"]');
+        if(chk){
+          const isSupId=['l_phd','l_mphil','l_msc'].includes(id);
+          const isIntlId=['l_coord','l_org','l_chair'].includes(id);
+          if(isIntlId && item.intl!==null && item.intl!==undefined) chk.checked=item.intl;
+          else if(isSupId && item.role) chk.checked=item.role.toLowerCase().includes('principal');
+          // Always restore saved pts directly (overrides checkbox-triggered default)
+          if(ptsIn) ptsIn.value=item.pts;
+        }
+      });
+    });
+  }
+  renderManualSections();
+  if(data.checklist){ data.checklist.forEach((v,i)=>{ const cb=document.getElementById('c'+i); if(cb) cb.checked=v; }); updateChecklist(); }
+  if(data.works){ allWorks=data.works; }
+  if(data.authorId) authorId=data.authorId;
+  updateHeader(); updateWordCount(); calcAge(); calcUGCTier();
+  if(allWorks.length){
+    document.getElementById('tilesRow').style.display='grid';
+    ['refSec','evSec','chkSec'].forEach(id=>document.getElementById(id).style.display='block');
+    document.getElementById('printBtn').style.display='block';
+  }
+}
+
+function loadLocal(){
+  // Restore only theme preference; all data is saved/loaded via JSON export/import
+  try{
+    const theme=localStorage.getItem('ysf_theme');
+    if(theme){ document.documentElement.setAttribute('data-theme',theme); document.getElementById('themeBtn').textContent=theme==='dark'?'☀️ Light':'🌙 Dark'; }
+  }catch{}
+}
+
+function exportJSON(){
+  const data=getFormData();
+  const name=(val('f_name')||'applicant').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const yr=new Date().getFullYear();
+  const a=document.createElement('a'); a.href=url; a.download=`YSF_Award_${name}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{ try{ restoreFormData(JSON.parse(e.target.result)); renderAll(); }catch{ alert('Invalid JSON file'); } };
+  reader.readAsText(file); input.value='';
+}
+
+// ── UI helpers ────────────────────────────────────────
+function updateHeader(){ const name=val('f_name')||'YSF Report Generator'; const inst=val('f_inst')||''; document.getElementById('mainTitle').textContent=name+' — YSF Report'; document.getElementById('mainSub').textContent=inst; document.title=name?`YSF_Award_${name.replace(/\s+/g,'_')}`:'YSF Report Generator'; }
+function updateWordCount(){ const words=val('f_summary').trim()?val('f_summary').trim().split(/\s+/).length:0; const el=document.getElementById('wcount'); el.textContent=words+' / 300 words'; el.className='wcount '+(words>300?'over':'ok'); }
+function setMsg(t,err=false){ const el=document.getElementById('loadMsg'); el.textContent=t; el.className='load-msg'+(err?' err':''); }
+
+// ── Manual paper add ─────────────────────────────────
+let manIsFirst = false;
+async function manFetchDoi(){
+  const raw=(document.getElementById('man_doi').value||'').trim().replace(/^https?:\/\/doi\.org\//,'');
+  const msgEl=document.getElementById('man_doi_msg');
+  if(!raw){ msgEl.textContent=''; return; }
+  // Clear previous state
+  ['man_title','man_authors','man_year','man_venue','man_issn','man_isbn'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('man_section').value='';
+  document.getElementById('man_q_badge').textContent='';
+  document.getElementById('manMsg').textContent='';
+  manIsFirst=false;
+  document.getElementById('man_corr_btn').textContent='Co-author';
+  document.getElementById('man_corr_btn').className='toggle-corr';
+  manUpdateSectionOptions(null);
+  msgEl.textContent='Fetching…'; msgEl.style.color='var(--fg3)';
+
+  await loadScimago();
+
+  // Helper to fill fields from a work object
+  function fillFields(title, authors, year, venue, issn){
+    if(title) document.getElementById('man_title').value=title;
+    if(authors) document.getElementById('man_authors').value=authors;
+    if(year) document.getElementById('man_year').value=year;
+    if(venue) document.getElementById('man_venue').value=venue;
+    if(issn){ document.getElementById('man_issn').value=issn; manCheckFields(); }
+  }
+
+  // 1. Try OpenAlex — fill fields for review
+  try {
+    const r=await fetch(`https://api.openalex.org/works/doi:${raw}?mailto=${MAILTO}`);
+    if(r.ok){
+      const w=await r.json();
+      if(w.id){
+        const doiDup=allWorks.find(e=>(e.work.doi||'').includes(raw));
+        if(doiDup){ msgEl.textContent='⚠️ Already added'; msgEl.style.color='orange'; return; }
+        const auths=(w.authorships||[]).map(a=>a.author?.display_name||'').filter(Boolean).join(', ');
+        const issns=w.primary_location?.source?.issn||[];
+        fillFields(w.display_name, auths, w.publication_year, w.primary_location?.source?.display_name||'', issns[0]||'');
+        // Store work for use in addManual
+        document.getElementById('man_doi').dataset.oawork = JSON.stringify(w);
+        // Scimago check → lock section if Q found
+        await loadScimago();
+        let q=null;
+        for(const issn of safeIssns(w)){
+          const qv=scimagoData?.[issn.replace('-','')];
+          if(qv){ q=qv; break; }
+        }
+        manUpdateSectionOptions(q);
+        msgEl.textContent=`✅ Fields filled from OpenAlex${q?' · '+q:''} — review and click "+ Add Paper".`;
+        msgEl.style.color='var(--accent)';
+        return;
+      }
+    }
+  } catch {}
+
+  // 2. Try Crossref — fill fields for review
+  try {
+    const r=await fetch(`https://api.crossref.org/works/${encodeURIComponent(raw)}`);
+    if(r.ok){
+      const d=await r.json(); const w=d.message;
+      const authors=(w.author||[]).map(a=>[a.given,a.family].filter(Boolean).join(' ')).join(', ');
+      const year=w.published?.['date-parts']?.[0]?.[0]||'';
+      fillFields(w.title?.[0]||'', authors, year, w['container-title']?.[0]||w.publisher||'', (w.ISSN||[])[0]||'');
+      msgEl.textContent='⚠️ Not in OpenAlex — fields filled from Crossref. Review and click "+ Add Paper".';
+      msgEl.style.color='var(--fg3)';
+      return;
+    }
+  } catch {}
+
+  msgEl.textContent='⚠️ Not found — fill fields manually.';
+  msgEl.style.color='var(--fg3)';
+}
+function manToggleCorr(){
+  manIsFirst=!manIsFirst;
+  const btn=document.getElementById('man_corr_btn');
+  btn.textContent=manIsFirst?'✓ 1st/Corr':'Co-author';
+  btn.className='toggle-corr'+(manIsFirst?' is-first':'');
+}
+function manUpdateSectionOptions(q){
+  // q = quartile from Scimago (after DOI fetch), null = no auto-select
+  const secSel=document.getElementById('man_section');
+  const badge=document.getElementById('man_q_badge');
+  Array.from(secSel.options).forEach(o=>{ o.hidden=false; });
+  secSel.disabled=false; // always unlocked — user can always change
+  if(q){
+    secSel.value=q==='Q1'||q==='Q2'?'q12':'q34';
+    badge.textContent=`→ ${q}`;
+    badge.style.color='var(--accent)';
+  } else {
+    badge.textContent='';
+  }
+}
+function manCheckFields(){ manUpdateSectionOptions(null); }
+async function addManual(){
+  const title=(document.getElementById('man_title').value||'').trim();
+  const authors=(document.getElementById('man_authors').value||'').trim();
+  const year=parseInt(document.getElementById('man_year').value)||new Date().getFullYear();
+  const venue=(document.getElementById('man_venue').value||'').trim();
+  const issnRaw=(document.getElementById('man_issn').value||'').replace(/[^0-9Xx]/g,'').toUpperCase();
+  const isbnRaw=(document.getElementById('man_isbn').value||'').trim();
+  const msg=document.getElementById('manMsg');
+
+  if(!title){ msg.textContent='⚠️ Title is required'; msg.className='load-msg err'; return; }
+  const section_val=document.getElementById('man_section').value;
+  if(!section_val){ msg.textContent='⚠️ Please select a section'; msg.className='load-msg err'; return; }
+
+  // Duplicate title check — first 40 chars (catches minor wording differences)
+  const titleKey=title.trim().toLowerCase().replace(/\s+/g,' ').slice(0,40);
+  const dup=allWorks.find(e=>(e.work.display_name||'').trim().toLowerCase().replace(/\s+/g,' ').slice(0,40)===titleKey);
+  if(dup && !confirm('A paper with a similar title already exists. Add anyway?')) return;
+
+  await loadScimago();
+
+  // If OpenAlex work stored from fetch, use it directly
+  const doiEl=document.getElementById('man_doi');
+  const oaRaw=doiEl?.dataset?.oawork;
+  if(oaRaw){
+    try{
+      const oaw=JSON.parse(oaRaw);
+      // Override display_name with possibly edited title
+      oaw.display_name=title;
+      // Use user-selected section, not getSectionFor
+      const sec=section_val||getSectionFor(oaw);
+      const isFirst=manIsFirst;
+      allWorks.push({work:oaw,section:sec,isFirst,pgNum:'',notes:''});
+      // Reset
+      ['man_doi','man_title','man_authors','man_year','man_venue','man_issn','man_isbn'].forEach(id=>{ const el=document.getElementById(id); if(el){el.value=''; delete el.dataset.oawork;} });
+      manIsFirst=false;
+      document.getElementById('man_corr_btn').textContent='Co-author';
+      document.getElementById('man_corr_btn').className='toggle-corr';
+      document.getElementById('man_q_badge').textContent='';
+      document.getElementById('man_doi_msg').textContent='';
+      document.getElementById('man_section').value='';
+      manUpdateSectionOptions(null);
+      msg.textContent='';
+      msg.className='load-msg';
+      renderAll();
+      return;
+    }catch{}
+  }
+
+  // Section — user selected, no auto-override
+  let section = section_val;
+
+  // Build work object
+  const issns = issnRaw.length===8 ? [issnRaw.slice(0,4)+'-'+issnRaw.slice(4)] : [];
+  const srcType = (section==='book'||section==='chapter') ? 'book' : 'journal';
+  const w = {
+    id: 'manual_'+Date.now(),
+    doi: null,
+    display_name: title,
+    type: section==='book'?'book':section==='chapter'?'book-chapter':section==='conf'?'proceedings-article':section==='abs'?'proceedings-article':'article',
+    publication_year: year,
+    cited_by_count: 0,
+    _manual: true,
+    _authors_str: authors,
+    _isbn: isbnRaw||'',
+    primary_location: {
+      source: {
+        display_name: venue||'—',
+        homepage_url: null,
+        issn: issns,
+        type: srcType
+      }
+    },
+    authorships: [{
+      author: { id: 'manual', display_name: authors||'—' },
+      author_position: manIsFirst?'first':'middle',
+      is_corresponding: manIsFirst
+    }]
+  };
+
+  allWorks.push({work:w, section, isFirst:manIsFirst, pgNum:'', notes:''});
+
+  // Reset form
+  ['man_doi','man_title','man_authors','man_year','man_venue','man_issn','man_isbn'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  manIsFirst=false;
+  document.getElementById('man_corr_btn').textContent='Co-author';
+  document.getElementById('man_corr_btn').className='toggle-corr';
+  document.getElementById('man_doi_msg').textContent='';
+  document.getElementById('man_q_badge').textContent='';
+  document.getElementById('man_section').value='';
+  manUpdateSectionOptions(null);
+
+  msg.textContent='';
+  msg.className='load-msg';
+  renderAll();
+}
+
+// ── Init ──────────────────────────────────────────────
+loadLocal();
+</script>
